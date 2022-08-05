@@ -169,6 +169,13 @@ class MakeCutouts(nn.Module):
             T.Lambda(lambda x: x + torch.randn_like(x) * 0.01),
             # T.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0.1),
         ])
+        # Ethan's speed up version, but not fully tested yet so I'm leaving it off.
+        # self.augs = T.Compose([
+        #     T.RandomHorizontalFlip(p=0.5),
+        #     T.Lambda(lambda x: x + torch.randn_like(x) * 0.01),
+        #     T.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0.1),
+        # ])
+
 
     def forward(self, input):
         input = T.Pad(input.shape[2] // 4, fill=0)(input)
