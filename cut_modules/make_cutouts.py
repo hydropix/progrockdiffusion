@@ -158,17 +158,23 @@ class MakeCutouts(nn.Module):
         self.cut_size = cut_size
         self.cutn = cutn
         self.skip_augs = skip_augs
+        # self.augs = T.Compose([
+        #     T.RandomHorizontalFlip(p=0.5),
+        #     T.Lambda(lambda x: x + torch.randn_like(x) * 0.01),
+        #     T.RandomAffine(degrees=15, translate=(0.1, 0.1)),
+        #     T.Lambda(lambda x: x + torch.randn_like(x) * 0.01),
+        #     T.RandomPerspective(distortion_scale=0.4, p=0.7),
+        #     T.Lambda(lambda x: x + torch.randn_like(x) * 0.01),
+        #     T.RandomGrayscale(p=0.15),
+        #     T.Lambda(lambda x: x + torch.randn_like(x) * 0.01),
+        #     # T.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0.1),
+        # ])
         self.augs = T.Compose([
             T.RandomHorizontalFlip(p=0.5),
             T.Lambda(lambda x: x + torch.randn_like(x) * 0.01),
-            T.RandomAffine(degrees=15, translate=(0.1, 0.1)),
-            T.Lambda(lambda x: x + torch.randn_like(x) * 0.01),
-            T.RandomPerspective(distortion_scale=0.4, p=0.7),
-            T.Lambda(lambda x: x + torch.randn_like(x) * 0.01),
-            T.RandomGrayscale(p=0.15),
-            T.Lambda(lambda x: x + torch.randn_like(x) * 0.01),
-            # T.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0.1),
+            T.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0.1),
         ])
+
 
     def forward(self, input):
         input = T.Pad(input.shape[2] // 4, fill=0)(input)

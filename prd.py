@@ -822,6 +822,9 @@ for setting_arg in cl_args.settings:
                 symmetry_loss_v = (settings_file['symmetry_loss_v'])
             if is_json_key_present(settings_file, 'symmetry_loss_h'):
                 symmetry_loss_h = (settings_file['symmetry_loss_h'])
+            if is_json_key_present(settings_file, 'sloss_scale'):
+                print('"sloss_scale" is deprecated. Please update your settings to use "symm_loss_scale"')
+                symm_loss_scale = int(dynamic_value(settings_file['sloss_scale']))
             if is_json_key_present(settings_file, 'symm_loss_scale'):
                 symm_loss_scale = int(dynamic_value(settings_file['symm_loss_scale']))
             if is_json_key_present(settings_file, 'symm_switch'):
@@ -1593,10 +1596,10 @@ def do_run(batch_num, slice_num=-1):
                     loss = loss + init_losses.sum() * args.init_scale
                 if args.symmetry_loss_v and actual_run_steps <= args.symm_switch:
                     sloss = symm_loss_v(x_in, lpips_model)
-                    loss = loss + sloss.sum() * args.sloss_scale
+                    loss = loss + sloss.sum() * args.symm_loss_scale
                 if args.symmetry_loss_h and actual_run_steps <= args.symm_switch:
                     sloss = symm_loss_h(x_in, lpips_model)
-                    loss = loss + sloss.sum() * args.sloss_scale
+                    loss = loss + sloss.sum() * args.symm_loss_scale
                 x_in_grad += torch.autograd.grad(loss, x_in)[0]
                 if torch.isnan(x_in_grad).any() == False:
                     grad = -torch.autograd.grad(x_in, x, x_in_grad)[0]
@@ -1956,7 +1959,7 @@ def save_settings():
         'gobig_overlap': gobig_overlap,
         'symmetry_loss_v': symmetry_loss_v,
         'symmetry_loss_h': symmetry_loss_h,
-        'sloss_scale': symm_loss_scale,
+        'symm_loss_scale': symm_loss_scale,
         'symm_switch': symm_switch,
         'perlin_brightness': perlin_brightness,
         'perlin_contrast': perlin_contrast,
@@ -2838,7 +2841,7 @@ args = {
     'stop_early': stop_early,
     'symmetry_loss_v': symmetry_loss_v,
     'symmetry_loss_h': symmetry_loss_h,
-    'sloss_scale': symm_loss_scale,
+    'symm_loss_scale': symm_loss_scale,
     'symm_switch': symm_switch,
     'smooth_schedules': smooth_schedules,
     'render_mask': render_mask,
