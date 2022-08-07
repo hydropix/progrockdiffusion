@@ -7,7 +7,7 @@ import threading
 import shlex
 import subprocess
 from time import *
-from PIL import ImageTk,Image
+from PIL import Image
 
 if os.path.exists('gui_settings.json'):
     try:
@@ -103,8 +103,7 @@ def save_text():
     json_set['sampling_mode'] = x
     x = set_seed_text.get()
     json_set['set_seed'] = x
-    x = display_rate_text.get()
-    json_set['display_rate'] = int(float(x))
+    json_set['display_rate'] = 1
     x = diffusion_model_text.get()
     json_set['diffusion_model'] = x
     x = symm_loss_scale_text.get()
@@ -115,6 +114,11 @@ def save_text():
     json_set['symmetry_loss_h'] = x
     x = symm_switch_text.get()
     json_set['symm_switch'] = x
+    x = init_image_text.get()
+    if not x:
+        json_set['init_image'] = None
+    else:
+        json_set['init_image'] = x
     x = extra_args_text.get()
     json_set['extra_args'] = x
     prompt_text = []
@@ -126,7 +130,10 @@ def save_text():
         prompt_text.append(prompt_text3.get())
     if prompt_text4.get() != '':
         prompt_text.append(prompt_text4.get())
-    json_set['text_prompts']['0'] = prompt_text
+    if prompt_text != []:
+        json_set['text_prompts']['0'] = prompt_text
+    else:
+        json_set['text_prompts']['0'] = ["A beautiful painting of a Castle in the Scottish Highlands, underexposed and overcast:1", "by Banksy, Beeple, and Bob Ross:0.75", "trending on ArtStation, vibrant:0.5", "bokeh, blur, dof, depth of field:-1"]
     with open("gui_settings.json", "w") as outfile:
         json.dump(json_set, outfile)
 
@@ -324,12 +331,6 @@ use_secondary_model_text = get_num('use_secondary_model')
 use_secondary_model = Checkbutton(frame2, text='Use Secondary Model', variable=use_secondary_model_text)
 use_secondary_model.grid(row=5, column=4, pady=5, padx=2, sticky=NW)
 
-display_rate = Label(frame1, text='Display Rate:')
-display_rate.grid(row=3, column=2, pady=5, padx=2, sticky=NW)
-
-display_rate_text = Entry(frame1, textvariable=get_text('display_rate'), width=12)
-display_rate_text.grid(row=3, column=3, pady=5, padx=2, sticky=NW)
-
 vitb32_text = get_num('ViTB32')
 vitb32_check = Checkbutton(frame2, text='ViTB32', variable=vitb32_text)
 if vitb32_text.get() == 1:
@@ -403,23 +404,29 @@ else:
 rn50x64_check.grid(row=5, column=3, pady=5, padx=2, sticky=NW)
 
 sampling_mode = Label(frame1, text='Sampling Mode:')
-sampling_mode.grid(row=2, column=4, pady=5, padx=2, sticky=NW)
+sampling_mode.grid(row=2, column=6, pady=5, padx=2, sticky=NW)
 
 sampling_mode_text = get_text('sampling_mode')
 sampling_mode_drop = OptionMenu(frame1, sampling_mode_text, 'ddim', 'plms')
-sampling_mode_drop.grid(row=2, column=5, pady=5, padx=2, sticky=NW)
+sampling_mode_drop.grid(row=2, column=7, pady=5, padx=2, sticky=NW)
 
 batch_name = Label(frame1, text='Batch Name:')
-batch_name.grid(row=2, column=6, pady=5, padx=2, sticky=NW)
+batch_name.grid(row=2, column=4, pady=5, padx=2, sticky=NW)
 
 batch_name_text = Entry(frame1, textvariable=get_text('batch_name'), width=10)
-batch_name_text.grid(row=2, column=7, pady=5, padx=2, sticky=NW)
+batch_name_text.grid(row=2, column=5, pady=5, padx=2, sticky=NW)
 
 n_batches = Label(frame1, text='Number of Batches:')
-n_batches.grid(row=3, column=6, pady=5, padx=2, sticky=NW)
+n_batches.grid(row=3, column=4, pady=5, padx=2, sticky=NW)
 
 n_batches_text = Entry(frame1, textvariable=get_text('n_batches'), width=12)
-n_batches_text.grid(row=3, column=7, pady=5, padx=2, sticky=NW)
+n_batches_text.grid(row=3, column=5, pady=5, padx=2, sticky=NW)
+
+init_image = Label(frame1, text='Init Image:')
+init_image.grid(row=3, column=6, pady=5, padx=2, sticky=NW)
+
+init_image_text = Entry(frame1, textvariable=get_text('init_image'), width=48)
+init_image_text.grid(row=3, column=7, pady=5, padx=2, sticky=NW)
 
 diffusion_model = Label(frame1, text='Diffusion Model:')
 diffusion_model.grid(row=1, column=6, pady=5, padx=2, sticky=NW)
@@ -435,10 +442,10 @@ diffusion_model_drop = OptionMenu(
 diffusion_model_drop.grid(row=1, column=7, pady=5, padx=2, sticky=NW)
 
 set_seed = Label(frame1, text='Set Seed:')
-set_seed.grid(row=3, column=4, pady=5, padx=2, sticky=NW)
+set_seed.grid(row=3, column=2, pady=5, padx=2, sticky=NW)
 
 set_seed_text = Entry(frame1, textvariable=get_text('set_seed'), width=12)
-set_seed_text.grid(row=3, column=5, pady=5, padx=2, sticky=NW)
+set_seed_text.grid(row=3, column=3, pady=5, padx=2, sticky=NW)
 
 symmetry_loss_v_text = get_num('symmetry_loss_v')
 symmetry_loss_v_check = Checkbutton(frame2, text='Vertical Symmetry', variable=symmetry_loss_v_text)
