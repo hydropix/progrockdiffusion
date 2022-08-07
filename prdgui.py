@@ -126,7 +126,10 @@ def save_text():
         prompt_text.append(prompt_text3.get())
     if prompt_text4.get() != '':
         prompt_text.append(prompt_text4.get())
-    json_set['text_prompts']['0'] = prompt_text
+    if prompt_text != []:
+        json_set['text_prompts']['0'] = prompt_text
+    else:
+        json_set['text_prompts']['0'] = ["A beautiful painting of a Castle in the Scottish Highlands, underexposed and overcast:1", "by Banksy, Beeple, and Bob Ross:0.75", "trending on ArtStation, vibrant:0.5", "bokeh, blur, dof, depth of field:-1"]
     with open("gui_settings.json", "w") as outfile:
         json.dump(json_set, outfile)
 
