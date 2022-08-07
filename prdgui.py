@@ -117,6 +117,8 @@ def save_text():
     x = init_image_text.get()
     if not x:
         json_set['init_image'] = None
+    elif x == 'None':
+        json_set['init_image'] = None
     else:
         json_set['init_image'] = x
     x = extra_args_text.get()
