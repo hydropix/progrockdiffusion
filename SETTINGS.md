@@ -212,7 +212,7 @@ Currently these values support dynamic mode:
 **RN50x4**
 **RN50x16**
 **RN50x64**
-**symm_loss_scale**
+**symm_loss_scale** note: only when using a schedule-style setting
 **cut_overview**
 **cut_innercut**
 **cut_ic_pow** note: only when using a schedule-style setting
