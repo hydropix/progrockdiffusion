@@ -252,7 +252,7 @@ gobig_skip_ratio = 0.6
 gobig_overlap = 64
 symmetry_loss_v = False
 symmetry_loss_h = False
-symm_loss_scale = 2400
+symm_loss_scale = "[2500]*1000"
 symm_switch = 45
 use_jpg = False
 render_mask = None
@@ -824,9 +824,12 @@ for setting_arg in cl_args.settings:
                 symmetry_loss_h = (settings_file['symmetry_loss_h'])
             if is_json_key_present(settings_file, 'sloss_scale'):
                 print('"sloss_scale" is deprecated. Please update your settings to use "symm_loss_scale"')
-                symm_loss_scale = int(dynamic_value(settings_file['sloss_scale']))
+                symm_loss_scale = (settings_file['sloss_scale'])
             if is_json_key_present(settings_file, 'symm_loss_scale'):
-                symm_loss_scale = int(dynamic_value(settings_file['symm_loss_scale']))
+                if type(settings_file['symm_loss_scale']) == str:
+                    symm_loss_scale = dynamic_value(settings_file['symm_loss_scale'])
+                else:
+                    symm_loss_scale = (settings_file['symm_loss_scale'])
             if is_json_key_present(settings_file, 'symm_switch'):
                 symm_switch = int(clampval('symm_switch', 1, (settings_file['symm_switch']), steps))
             if is_json_key_present(settings_file, 'use_jpg'):
@@ -1012,6 +1015,9 @@ if clip_guidance_scale == 'auto':
         clip_guidance_scale = round(clip_guidance_scale)
     clip_guidance_scale = num_to_schedule(clip_guidance_scale)
     print(f'clip_guidance_scale set automatically to: {clip_guidance_scale}')
+
+if type(symm_loss_scale) != str:
+    symm_loss_scale = num_to_schedule(symm_loss_scale)
 
 og_cutn_batches = cutn_batches
 if type(cutn_batches) != str:
@@ -1596,10 +1602,10 @@ def do_run(batch_num, slice_num=-1):
                     loss = loss + init_losses.sum() * args.init_scale
                 if args.symmetry_loss_v and actual_run_steps <= args.symm_switch:
                     sloss = symm_loss_v(x_in, lpips_model)
-                    loss = loss + sloss.sum() * args.symm_loss_scale
+                    loss = loss + sloss.sum() * args.symm_loss_scale[1000 - t_int]
                 if args.symmetry_loss_h and actual_run_steps <= args.symm_switch:
                     sloss = symm_loss_h(x_in, lpips_model)
-                    loss = loss + sloss.sum() * args.symm_loss_scale
+                    loss = loss + sloss.sum() * args.symm_loss_scale[1000 - t_int]
                 x_in_grad += torch.autograd.grad(loss, x_in)[0]
                 if torch.isnan(x_in_grad).any() == False:
                     grad = -torch.autograd.grad(x_in, x, x_in_grad)[0]
@@ -1879,6 +1885,7 @@ def save_settings():
         'render_mask': render_mask,
         'init_scale': init_scale,
         'skip_steps': skip_steps,
+        'skip_steps_ratio': skip_steps_ratio,
         # 'zoom_per_frame': zoom_per_frame,
         'frames_scale': frames_scale,
         'frames_skip_steps': frames_skip_steps,
@@ -2841,7 +2848,7 @@ args = {
     'stop_early': stop_early,
     'symmetry_loss_v': symmetry_loss_v,
     'symmetry_loss_h': symmetry_loss_h,
-    'symm_loss_scale': symm_loss_scale,
+    'symm_loss_scale': eval(symm_loss_scale),
     'symm_switch': symm_switch,
     'smooth_schedules': smooth_schedules,
     'render_mask': render_mask,
@@ -2860,6 +2867,7 @@ if smooth_schedules == True:
     args.cut_ic_pow = smooth_jazz(args.cut_ic_pow)
     args.clip_guidance_scale = smooth_jazz(args.clip_guidance_scale)
     args.clamp_max = smooth_jazz(args.clamp_max)
+    args.symm_loss_scale = smooth_jazz(args.symm_loss_scale)
 
 if cl_args.gobiginit == None:
     model, diffusion = create_model_and_diffusion(**model_config)
