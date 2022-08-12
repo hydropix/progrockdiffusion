@@ -52,10 +52,21 @@ def get_text(derp):
     except:
         return ''
 
-def get_prompt(x):
-    text = StringVar()
-    text.set(json_set['text_prompts']['0'][x])
-    return text
+def get_prompt(x, i):
+    try:
+        text = StringVar()
+        text.set(json_set['text_prompts'][x][i])
+        return text
+    except:
+        return ''
+
+def get_prompt_step(x):
+    try:
+        text = StringVar()
+        text.set(json_set['text_prompts'][x])
+        return text
+    except:
+        return ''
 
 path = './'
 
@@ -123,21 +134,26 @@ def save_text():
         json_set['init_image'] = x
     x = extra_args_text.get()
     json_set['extra_args'] = x
-    prompt_text = []
-    if prompt_text1.get() != '':
-        prompt_text.append(prompt_text1.get())
-    if prompt_text2.get() != '':
-        prompt_text.append(prompt_text2.get())
-    if prompt_text3.get() != '':
-        prompt_text.append(prompt_text3.get())
-    if prompt_text4.get() != '':
-        prompt_text.append(prompt_text4.get())
-    if prompt_text != []:
-        json_set['text_prompts']['0'] = prompt_text
+    global prompt_text_box
+    if prompt_text_box:
+        for i in range(len(prompt_text_box)):
+            i = str(i)
+            global tempprompts
+            tempprompts = []
+            for j in range(len(prompt_text_box[i])):
+                x = prompt_text_box[i][j].get()
+                if x != '':
+                    tempprompts.append(x)
+                else:
+                    prompt_text_box[i][j].destroy()
+                    prompt_text_box_label[i][j].destroy()
+                    prompt_text_box[i].pop(j)
+                    prompt_text_box_label[i].pop(j)
+            json_set['text_prompts'][i] = tempprompts
     else:
         json_set['text_prompts']['0'] = ["A beautiful painting of a Castle in the Scottish Highlands, underexposed and overcast:1", "by Banksy, Beeple, and Bob Ross:0.75", "trending on ArtStation, vibrant:0.5", "bokeh, blur, dof, depth of field:-1"]
-    with open("gui_settings.json", "w") as outfile:
-        json.dump(json_set, outfile)
+    with open("gui_settings.json", "w+", encoding="utf-8") as outfile:
+        json.dump(json_set, outfile, ensure_ascii=False, indent=4)
 
 def run_thread():
     if has_run == False:
@@ -168,7 +184,8 @@ def do_run():
             window.update()
         else:
             pass
-                
+    
+    # Alternative method to run PRD
     # os.system('python prd.py -s gui_settings.json '+extra_args_text.get())
 
 def show_image():
@@ -260,38 +277,80 @@ frame1.grid(row=0, column=0, sticky=NSEW)
 frame2 = Frame(left_frame1, bg='Light Yellow', bd=2, relief=FLAT)
 frame2.grid(row=1, column=0, sticky=NSEW)
 
+frame2_sub1 = Frame(frame2, bg='Light Yellow', bd=2, relief=FLAT)
+frame2_sub1.grid(row=0, column=0, sticky=NSEW)
+
+frame2_sub2 = Frame(frame2, bg='Light Yellow', bd=2, relief=FLAT)
+frame2_sub2.grid(row=1, column=0, sticky=NSEW)
+
 frame3 = Frame(left_frame1, bg='Light Blue', bd=2, relief=FLAT)
 frame3.grid(row=2, column=0, sticky=NSEW)
 
-prompt1 = Label(frame3, text='Prompt 1')
-prompt1.grid(row=1, column=0, pady=5, padx=2, sticky=NW)
+frame3_sub1 = Frame(frame3, bg='Light Blue', bd=2, relief=FLAT)
+frame3_sub1.grid(row=0, column=0, sticky=NSEW)
 
-prompt_text1 = Entry(frame3, textvariable=get_prompt(0), width=150)
-prompt_text1.grid(row=2, column=0, pady=5, padx=2, sticky=NW)
+frame3_sub2 = Frame(frame3, bg='Light Blue', bd=2, relief=FLAT)
+frame3_sub2.grid(row=1, column=0, sticky=NSEW)
 
-prompt2 = Label(frame3, text='Prompt 2')
-prompt2.grid(row=3, column=0, pady=5, padx=2, sticky=NW)
-if len(json_set['text_prompts']['0']) > 1:
-    prompt_text2 = Entry(frame3, textvariable=get_prompt(1), width=150)
-else:
-    prompt_text2 = Entry(frame3, textvariable='', width=150)
-prompt_text2.grid(row=4, column=0, pady=5, padx=2, sticky=NW)
+# Text Prompts
 
-prompt3 = Label(frame3, text='Prompt 3')
-prompt3.grid(row=5, column=0, pady=5, padx=2, sticky=NW)
-if len(json_set['text_prompts']['0']) > 2:
-    prompt_text3 = Entry(frame3, textvariable=get_prompt(2), width=150)
-else:
-    prompt_text3 = Entry(frame3, textvariable='', width=150)
-prompt_text3.grid(row=6, column=0, pady=5, padx=2, sticky=NW)
+current_step = '0'
+derp = 0
+prompt_text_box_label = {}
+prompt_text_box_label['0'] = {}
+prompt_text_box = {}
+prompt_text_box['0'] = {}
+#prompt_text_steps = json_set['text_prompts']
+#prompt_text_steps_box_label = {}
+#prompt_text_steps_box = {}
+prompt_text = json_set['text_prompts']
 
-prompt4 = Label(frame3, text='Prompt 4')
-prompt4.grid(row=7, column=0, pady=5, padx=2, sticky=NW)
-if len(json_set['text_prompts']['0']) > 3:
-    prompt_text4 = Entry(frame3, textvariable=get_prompt(3), width=150)
-else:
-    prompt_text4 = Entry(frame3, textvariable='', width=150)
-prompt_text4.grid(row=8, column=0, pady=5, padx=2, sticky=NW)
+def get_prompts():
+    global prompt_text
+    prompt_text = json_set['text_prompts']
+    for x in range(len(prompt_text)):
+        x = str(x)
+        #prompt_text_steps_box_label[x] = Label(frame3_sub2, text="Step for these prompts to begin:")
+        #prompt_text_steps_box_label[x].pack(anchor=NW, padx=2, pady=5)
+        #prompt_text_steps_box[x] = Entry(frame3_sub2, textvariable=get_prompt_step(x), width=150)
+        #prompt_text_steps_box[x].pack(anchor=NW, padx=2, pady=5)
+        for i in range(len(prompt_text[x])):
+            prompt_text_box_label[x][i] = Label(frame3_sub2, text="Prompt " +str(i+1)+":")
+            prompt_text_box_label[x][i].pack(anchor=NW, padx=2, pady=5)
+            j = get_prompt(x, i)
+            if j != "" or '' or None:
+                prompt_text_box[x][i] = Entry(frame3_sub2, textvariable=get_prompt(x, i), width=150)
+                prompt_text_box[x][i].pack(anchor=NW, padx=2, pady=5)
+            
+
+
+get_prompts()
+
+def new_prompt():
+    global prompt_text
+    global current_step
+    derp = len(prompt_text[current_step])
+    prompt_text[current_step].append("")
+    prompt_text_box_label[current_step][derp] = Label(frame3_sub2, text="Prompt " +str(derp+1)+":")
+    prompt_text_box_label[current_step][derp].pack(anchor=NW, padx=2, pady=5)
+    prompt_text_box[current_step][derp] = Entry(frame3_sub2, textvariable='', width=150)
+    prompt_text_box[current_step][derp].pack(anchor=NW, padx=2, pady=5)
+
+
+#def new_prompt_step():
+#    global prompt_text
+#    global current_step
+#    x = len(prompt_text)
+#    prompt_text_steps[x] = Label(frame3_sub2, text="Step for these prompts to begin" +str(current_step)+":")
+#    prompt_text_steps[x].pack(anchor=NW, padx=2, pady=5)
+
+
+
+new_prompt_button = Button(frame3_sub1, text="New Prompt", command=new_prompt)
+new_prompt_button.grid(row=0, column=0, sticky=NW)
+
+#new_prompt_step_button = Button(frame3_sub1, text="New Prompt Step", command=new_prompt_step)
+#new_prompt_step_button.grid(row=0, column=1, sticky=NW)
 
 steps = Label(frame1, text='Steps:')
 steps.grid(row=1, column=0, pady=5, padx=2, sticky=NW)
@@ -330,11 +389,11 @@ eta_text = Entry(frame1, textvariable=get_text('eta'), width=8)
 eta_text.grid(row=3, column=1, pady=5, padx=2, sticky=NW)
 
 use_secondary_model_text = get_num('use_secondary_model')
-use_secondary_model = Checkbutton(frame2, text='Use Secondary Model', variable=use_secondary_model_text)
+use_secondary_model = Checkbutton(frame2_sub1, text='Use Secondary Model', variable=use_secondary_model_text)
 use_secondary_model.grid(row=5, column=4, pady=5, padx=2, sticky=NW)
 
 vitb32_text = get_num('ViTB32')
-vitb32_check = Checkbutton(frame2, text='ViTB32', variable=vitb32_text)
+vitb32_check = Checkbutton(frame2_sub1, text='ViTB32', variable=vitb32_text)
 if vitb32_text.get() == 1:
     vitb32_check.select()
 else:
@@ -342,7 +401,7 @@ else:
 vitb32_check.grid(row=4, column=0, pady=5, padx=2, sticky=NW)
 
 vitb16_text = get_num('ViTB16')
-vitb16_check = Checkbutton(frame2, text='ViTB16', variable=vitb16_text)
+vitb16_check = Checkbutton(frame2_sub1, text='ViTB16', variable=vitb16_text)
 if vitb16_text.get() == 1:
     vitb16_check.select()
 else:
@@ -350,7 +409,7 @@ else:
 vitb16_check.grid(row=4, column=1, pady=5, padx=2, sticky=NW)
 
 vitl14_text = get_num('ViTL14')
-vitl14_check = Checkbutton(frame2, text='ViTL14', variable=vitl14_text)
+vitl14_check = Checkbutton(frame2_sub1, text='ViTL14', variable=vitl14_text)
 if vitl14_text.get() == 1:
     vitl14_check.select()
 else:
@@ -358,7 +417,7 @@ else:
 vitl14_check.grid(row=4, column=2, pady=5, padx=2, sticky=NW)
 
 vitl14_336_text = get_num('ViTL14_336')
-vitl14_336_check = Checkbutton(frame2, text='ViTL14_336', variable=vitl14_336_text)
+vitl14_336_check = Checkbutton(frame2_sub1, text='ViTL14_336', variable=vitl14_336_text)
 if vitl14_336_text.get() == 1:
     vitl14_336_check.select()
 else:
@@ -366,7 +425,7 @@ else:
 vitl14_336_check.grid(row=4, column=3, pady=5, padx=2, sticky=NW)
 
 rn101_text = get_num('RN101')
-rn101_check = Checkbutton(frame2, text='RN101', variable=rn101_text)
+rn101_check = Checkbutton(frame2_sub1, text='RN101', variable=rn101_text)
 if rn101_text.get() == 1:
     rn101_check.select()
 else:
@@ -374,7 +433,7 @@ else:
 rn101_check.grid(row=4, column=4, pady=5, padx=2, sticky=NW)
 
 rn50_text = get_num('RN50')
-rn50_check = Checkbutton(frame2, text='RN50', variable=rn50_text)
+rn50_check = Checkbutton(frame2_sub1, text='RN50', variable=rn50_text)
 if rn50_text.get() == 1:
     rn50_check.select()
 else:
@@ -382,7 +441,7 @@ else:
 rn50_check.grid(row=5, column=0, pady=5, padx=2, sticky=NW)
 
 rn50x4_text = get_num('RN50x4')
-rn50x4_check = Checkbutton(frame2, text='RN50x4', variable=rn50x4_text)
+rn50x4_check = Checkbutton(frame2_sub1, text='RN50x4', variable=rn50x4_text)
 if rn50x4_text.get() == 1:
     rn50x4_check.select()
 else:
@@ -390,7 +449,7 @@ else:
 rn50x4_check.grid(row=5, column=1, pady=5, padx=2, sticky=NW)
 
 rn50x16_text = get_num('RN50x16')
-rn50x16_check = Checkbutton(frame2, text='RN50x16', variable=rn50x16_text)
+rn50x16_check = Checkbutton(frame2_sub1, text='RN50x16', variable=rn50x16_text)
 if rn50x16_text.get() == 1:
     rn50x16_check.select()
 else:
@@ -398,7 +457,7 @@ else:
 rn50x16_check.grid(row=5, column=2, pady=5, padx=2, sticky=NW)
 
 rn50x64_text = get_num('RN50x64')
-rn50x64_check = Checkbutton(frame2, text='RN50x64', variable=rn50x64_text)
+rn50x64_check = Checkbutton(frame2_sub1, text='RN50x64', variable=rn50x64_text)
 if rn50x64_text.get() == 1:
     rn50x64_check.select()
 else:
@@ -450,7 +509,7 @@ set_seed_text = Entry(frame1, textvariable=get_text('set_seed'), width=12)
 set_seed_text.grid(row=3, column=3, pady=5, padx=2, sticky=NW)
 
 symmetry_loss_v_text = get_num('symmetry_loss_v')
-symmetry_loss_v_check = Checkbutton(frame2, text='Vertical Symmetry', variable=symmetry_loss_v_text)
+symmetry_loss_v_check = Checkbutton(frame2_sub1, text='Vertical Symmetry', variable=symmetry_loss_v_text)
 if symmetry_loss_v_text.get() == 1:
     symmetry_loss_v_check.select()
 else:
@@ -458,33 +517,33 @@ else:
 symmetry_loss_v_check.grid(row=4, column=8, pady=5, padx=2, sticky=NW)
 
 symmetry_loss_h_text = get_num('symmetry_loss_h')
-symmetry_loss_h_check = Checkbutton(frame2, text='Horizontal Symmetry', variable=symmetry_loss_h_text)
+symmetry_loss_h_check = Checkbutton(frame2_sub1, text='Horizontal Symmetry', variable=symmetry_loss_h_text)
 if symmetry_loss_h_text.get() == 1:
     symmetry_loss_h_check.select()
 else:
     symmetry_loss_h_check.deselect()
 symmetry_loss_h_check.grid(row=5, column=8, pady=5, padx=2, sticky=NW)
 
-symm_loss_scale = Label(frame2, text='Symmetry Scale:')
+symm_loss_scale = Label(frame2_sub1, text='Symmetry Scale:')
 symm_loss_scale.grid(row=5, column=9, pady=5, padx=2, sticky=NW)
 
-symm_loss_scale_text = Entry(frame2, textvariable=get_text('symm_loss_scale'), width=12)
+symm_loss_scale_text = Entry(frame2_sub1, textvariable=get_text('symm_loss_scale'), width=12)
 symm_loss_scale_text.grid(row=5, column=10, pady=5, padx=2, sticky=NW)
 
-symm_switch = Label(frame2, text='Symmetry Switch:')
+symm_switch = Label(frame2_sub1, text='Symmetry Switch:')
 symm_switch.grid(row=4, column=9, pady=5, padx=2, sticky=NW)
 
-symm_switch_text = Entry(frame2, textvariable=get_text('symm_switch'), width=12)
+symm_switch_text = Entry(frame2_sub1, textvariable=get_text('symm_switch'), width=12)
 symm_switch_text.grid(row=4, column=10, pady=5, padx=2, sticky=NW)
 
-extra_args = Label(frame3, text='Extra Args: (Advanced use only. Ex: --gobig)')
+extra_args = Label(frame2_sub2, text='Extra Args: (Advanced use only. Ex: --gobig)')
 extra_args.grid(row=9, column=0, pady=5, padx=2, sticky=NW)
 
-extra_args_text = Entry(frame3, textvariable=get_text('extra_args'), width=150)
+extra_args_text = Entry(frame2_sub2, textvariable=get_text('extra_args'), width=150)
 extra_args_text.grid(row=10, column=0, pady=5, padx=2, sticky=NW)
 
-save = Button(frame2,text='Save Settings', command=save_text).grid(row=4, column=11, pady=5, padx=2)
-run = Button(frame2,text='Run', command=run_thread).grid(row=5, column=11, pady=5, padx=2)
+save = Button(frame2_sub1,text='Save Settings', command=save_text).grid(row=4, column=11, pady=5, padx=2)
+run = Button(frame2_sub1,text='Run', command=run_thread).grid(row=5, column=11, pady=5, padx=2)
 
 frame = Frame(left_frame2, height=150)
 frame.pack_propagate(0)
