@@ -266,7 +266,7 @@ Layer that on top of your regular settings and it will apply those values withou
 ## [Visual Diffusion](https://github.com/KnoBuddy/visualdiffusion/)
 Visual Diffusion is a GUI for progrockdiffusion. Please direct all GUI related issue/features/requests to [Visual Diffusion](https://github.com/KnoBuddy/visualdiffusion/)
 
-![image](https://user-images.githubusercontent.com/64171756/184453665-ca6dda5a-654f-450a-87b0-9e8a8f8d77ba.png)
+![image](https://user-images.githubusercontent.com/64171756/184454698-a15f82f7-f9d6-4770-a373-159fdb27f07d.png)
 ### Install
 ```conda activate progrockdiffusion
 cd progrockdiffusion
