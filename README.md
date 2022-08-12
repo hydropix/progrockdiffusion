@@ -262,19 +262,6 @@ For example you could have a settings file that just contains a higher width, he
 Layer that on top of your regular settings and it will apply those values without changing anything else.
 
 
-## [Windows]
-```
-conda activate progrockdiffusion
-cd progrockdiffusion
-python prdgui.py
-```
-## [Linux/MacOS]
-```
-conda activate progrockdiffusion
-cd progrockdiffusion
-python3 prdgui.py
-```
-
 # Tips and Troubleshooting
 ## Get a random artist
 In your prompt, if you use \_artist\_ instead of an artists name, an artist will be picked at random from artists.txt
