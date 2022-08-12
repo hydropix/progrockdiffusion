@@ -1,6 +1,6 @@
 # progrockdiffusion
 A command line version of [Disco Diffusion](https://github.com/alembics/disco-diffusion).
-A GUI is available with a focused set of settings here: [GUI Instructions](#gui-instructions)
+A GUI is available with a focused set of settings here: [Visual Diffusion](https://github.com/KnoBuddy/visualdiffusion/)
 
 Please consider supporting my time and effort in maintaining and improving this program on my [Patreon](https://www.patreon.com/jasonmhough?fan_landing=true). Thanks!
 
@@ -261,21 +261,6 @@ Settings.json is **always loaded**, and any specified after that are layered on 
 For example you could have a settings file that just contains a higher width, height, and more steps, for when you want to make a high-quality image.
 Layer that on top of your regular settings and it will apply those values without changing anything else.
 
-# GUI Instructions
-
-<img src="gui.png">
-
-Open up a command line window (shell) and activate the conda environment like normal, and then run prdgui.py.
-Please read the [settings file](SETTINGS.md) if you are unfamiliar with PRD.
-
-You can add up to 4 prompts with different weights. The "Save Settings" button saves the settings to gui_settings.json.
-Make sure you select at least one CLIP Model. I also recommend naming your batch. 
-If you need to cancel the render, you will have to kill the shell window you used to open the GUI.
-
-The final text box is for extra shell arguments. They will be parsed after the initial command:
-```
-python prd.py -s gui_settings.json <YOUR ARGS GO HERE>
-```
 
 ## [Windows]
 ```
