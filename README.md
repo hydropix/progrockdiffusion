@@ -1,6 +1,6 @@
 # progrockdiffusion
 A command line version of [Disco Diffusion](https://github.com/alembics/disco-diffusion).
-A GUI is available with a focused set of settings here: [Visual Diffusion](https://github.com/KnoBuddy/visualdiffusion/)
+A GUI is available with a focused set of settings here: [GUI Instructions](#gui-instructions)
 
 Please consider supporting my time and effort in maintaining and improving this program on my [Patreon](https://www.patreon.com/jasonmhough?fan_landing=true). Thanks!
 
@@ -260,6 +260,30 @@ Simply edit the settings.json file provided, or BETTER YET copy it and make seve
 Settings.json is **always loaded**, and any specified after that are layered on top (they only need to contain the settings you want to tweak).
 For example you could have a settings file that just contains a higher width, height, and more steps, for when you want to make a high-quality image.
 Layer that on top of your regular settings and it will apply those values without changing anything else.
+
+# GUI Instructions
+
+## [Visual Diffusion](https://github.com/KnoBuddy/visualdiffusion/)
+Visual Diffusion is a GUI for progrockdiffusion. Please direct all GUI related issue/features/requests to [Visual Diffusion](https://github.com/KnoBuddy/visualdiffusion/)
+
+![image](https://user-images.githubusercontent.com/64171756/184453665-ca6dda5a-654f-450a-87b0-9e8a8f8d77ba.png)
+### Install
+```conda activate progrockdiffusion
+cd progrockdiffusion
+git clone https://github.com/KnoBuddy/visualdiffusion/
+```
+### [Windows]
+```
+conda activate progrockdiffusion
+cd progrockdiffusion
+python visualdiffusion\prdgui.py
+```
+### [Linux/MacOS]
+```
+conda activate progrockdiffusion
+cd progrockdiffusion
+python3 visualdiffusion\prdgui.py
+```
 
 
 # Tips and Troubleshooting
