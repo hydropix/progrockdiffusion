@@ -222,7 +222,7 @@ translation_x = "0: (0)"
 translation_y = "0: (0)"
 video_init_path = "/content/training.mp4"
 extract_nth_frame = 2
-intermediate_saves = 0
+intermediate_saves = [0]
 add_metadata = True
 stop_early = 0
 fix_brightness_contrast = True
@@ -246,7 +246,6 @@ low_brightness_adjust = True
 sharpen_preset = 'Off'  # @param ['Off', 'Faster', 'Fast', 'Slow', 'Very Slow']
 keep_unsharp = False  # @param{type: 'boolean'}
 animation_mode = "None"  # "Video Input", "2D"
-gobig_orientation = "vertical"
 gobig_scale = 2
 gobig_skip_ratio = 0.6
 gobig_overlap = 64
@@ -1701,10 +1700,7 @@ def do_run(batch_num, slice_num=-1):
                     cur_t = -1
 
                 intermediateStep = False
-                if args.steps_per_checkpoint is not None:
-                    if actual_run_steps % steps_per_checkpoint == 0 and actual_run_steps > 0:
-                        intermediateStep = True
-                elif actual_run_steps in args.intermediate_saves:
+                if actual_run_steps in args.intermediate_saves:
                     intermediateStep = True
 
                 if actual_run_steps % args.display_rate == 0 or cur_t == -1 or intermediateStep == True:
@@ -1723,12 +1719,7 @@ def do_run(batch_num, slice_num=-1):
                                         save_num = batch_num
                                 filename = f'{args.batch_name}_{args.batchNum}_{save_num}.png'
                             else:
-                                # If we're working with percentages, append it
-                                if args.steps_per_checkpoint is not None:
-                                    filename = f'{args.batch_name}({args.batchNum})_{batch_num:04}-{percent:02}%.png'
-                                # Or else, if we're working with specific steps, append those
-                                else:
-                                    filename = f'{args.batch_name}({args.batchNum})_{batch_num:04}-{actual_run_steps:03}.png'
+                                filename = f'{args.batch_name}({args.batchNum})_{batch_num:04}-{actual_run_steps:03}.png'
                         image = TF.to_pil_image(image.add(1).div(2).clamp(0, 1))
                         # add some key metadata to the PNG if the commandline allows it
                         metadata = PngInfo()
@@ -1758,21 +1749,14 @@ def do_run(batch_num, slice_num=-1):
                                 image.save(f"progress{cl_args.cuda}.png")  # note the GPU being used if it's not 0, so it won't overwrite other GPU's work
                             else:
                                 image.save('progress.png')
-                        if args.steps_per_checkpoint is not None:
-                            if actual_run_steps % args.steps_per_checkpoint == 0 and actual_run_steps > 0:
-                                if args.intermediates_in_subfolder is True:
-                                    image.save(f'{partialFolder}/{filename}', quality = output_quality)
-                                else:
-                                    image.save(f'{batchFolder}/{filename}', quality = output_quality)
-                        else:
-                            if actual_run_steps in args.intermediate_saves:
-                                if args.intermediates_in_subfolder is True:
-                                    image.save(f'{partialFolder}/{filename}', quality = output_quality)
-                                else:
-                                    image.save(f'{batchFolder}/{filename}', quality = output_quality)
-                                if geninit is True:
-                                    image.save('geninit.png')
-                                    raise KeyboardInterrupt
+                        if actual_run_steps in args.intermediate_saves:
+                            if args.intermediates_in_subfolder is True:
+                                image.save(f'{partialFolder}/{filename}', quality = output_quality)
+                            else:
+                                image.save(f'{batchFolder}/{filename}', quality = output_quality)
+                            if geninit is True:
+                                image.save('geninit.png')
+                                raise KeyboardInterrupt
 
                         if cur_t == -1:
                             if args.animation_mode != "None":
@@ -1964,23 +1948,6 @@ def save_settings():
         'extract_nth_frame': extract_nth_frame,
         'stop_early': stop_early,
         'fix_brightness_contrast': fix_brightness_contrast,
-        'adjustment_interval': adjustment_interval,
-        'high_contrast_threshold': high_contrast_threshold,
-        'high_contrast_adjust_amount': high_contrast_adjust_amount,
-        'high_contrast_start': high_contrast_start,
-        'high_contrast_adjust': high_contrast_adjust,
-        'low_contrast_threshold': low_contrast_threshold,
-        'low_contrast_adjust_amount': low_contrast_adjust_amount,
-        'low_contrast_start': low_contrast_start,
-        'low_contrast_adjust': low_contrast_adjust,
-        'high_brightness_threshold': high_brightness_threshold,
-        'high_brightness_adjust_amount': high_brightness_adjust_amount,
-        'high_brightness_start': high_brightness_start,
-        'high_brightness_adjust': high_brightness_adjust,
-        'low_brightness_threshold': low_brightness_threshold,
-        'low_brightness_adjust_amount': low_brightness_adjust_amount,
-        'low_brightness_start': low_brightness_start,
-        'low_brightness_adjust': low_brightness_adjust,
         'sharpen_preset': sharpen_preset,
         'keep_unsharp': keep_unsharp,
         'gobig_scale': gobig_scale,
@@ -2705,10 +2672,7 @@ def do_at_step(value, steps, skip_steps):
             this_step += interval
     return new_value
 
-if intermediate_saves != 0:
-    intermediate_saves = do_at_step(intermediate_saves, steps, skip_steps)
-    print(f'New Intermediate saves value is {intermediate_saves}')
-    steps_per_checkpoint = None # TODO get rid of this value entirely
+intermediate_saves = do_at_step(intermediate_saves, steps, skip_steps)
 
 if simple_symmetry != [0]:
     simple_symmetry = do_at_step(simple_symmetry, steps, skip_steps)
@@ -2859,7 +2823,6 @@ args = {
     'cut_icgray_p': eval(cut_icgray_p),
     'intermediate_saves': intermediate_saves,
     'intermediates_in_subfolder': intermediates_in_subfolder,
-    'steps_per_checkpoint': steps_per_checkpoint,
     'perlin_init': perlin_init,
     'perlin_mode': perlin_mode,
     'set_seed': set_seed,
