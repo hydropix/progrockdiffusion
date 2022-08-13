@@ -263,32 +263,28 @@ Layer that on top of your regular settings and it will apply those values withou
 
 # GUI Instructions
 
-<img src="gui.png">
+## [Visual Diffusion](https://github.com/KnoBuddy/visualdiffusion/)
+Visual Diffusion is a GUI for progrockdiffusion. Please direct all GUI related issue/features/requests to [Visual Diffusion](https://github.com/KnoBuddy/visualdiffusion/)
 
-Open up a command line window (shell) and activate the conda environment like normal, and then run prdgui.py.
-Please read the [settings file](SETTINGS.md) if you are unfamiliar with PRD.
-
-You can add up to 4 prompts with different weights. The "Save Settings" button saves the settings to gui_settings.json.
-Make sure you select at least one CLIP Model. I also recommend naming your batch. 
-If you need to cancel the render, you will have to kill the shell window you used to open the GUI.
-
-The final text box is for extra shell arguments. They will be parsed after the initial command:
+![image](https://user-images.githubusercontent.com/64171756/184454698-a15f82f7-f9d6-4770-a373-159fdb27f07d.png)
+### Install
+```conda activate progrockdiffusion
+cd progrockdiffusion
+git clone https://github.com/KnoBuddy/visualdiffusion/
 ```
-python prd.py -s gui_settings.json <YOUR ARGS GO HERE>
-```
-
-## [Windows]
+### [Windows]
 ```
 conda activate progrockdiffusion
 cd progrockdiffusion
-python prdgui.py
+python visualdiffusion\prdgui.py
 ```
-## [Linux/MacOS]
+### [Linux/MacOS]
 ```
 conda activate progrockdiffusion
 cd progrockdiffusion
-python3 prdgui.py
+python3 visualdiffusion\prdgui.py
 ```
+
 
 # Tips and Troubleshooting
 ## Get a random artist
