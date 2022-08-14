@@ -2656,8 +2656,8 @@ if geninit:
 # or a list of floats (multiple of overall steps) which we convert to specific steps
 # that way later we only have to deal with a list of specific steps. Crazy, right?
 def do_at_step(value, steps, skip_steps):
+    new_value = []
     if type(value) is list:
-        new_value = []
         for val in value:
             if type(val) is float:
                 val = int(steps * val)
