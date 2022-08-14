@@ -222,7 +222,7 @@ translation_x = "0: (0)"
 translation_y = "0: (0)"
 video_init_path = "/content/training.mp4"
 extract_nth_frame = 2
-intermediate_saves = 0
+intermediate_saves = [0]
 add_metadata = True
 stop_early = 0
 fix_brightness_contrast = True
@@ -246,14 +246,15 @@ low_brightness_adjust = True
 sharpen_preset = 'Off'  # @param ['Off', 'Faster', 'Fast', 'Slow', 'Very Slow']
 keep_unsharp = False  # @param{type: 'boolean'}
 animation_mode = "None"  # "Video Input", "2D"
-gobig_orientation = "vertical"
 gobig_scale = 2
 gobig_skip_ratio = 0.6
 gobig_overlap = 64
+gobig_maximize = False
 symmetry_loss_v = False
 symmetry_loss_h = False
 symm_loss_scale = "[2500]*1000"
 symm_switch = 45
+simple_symmetry = [0]
 use_jpg = False
 render_mask = None
 cool_down = 0
@@ -815,6 +816,8 @@ for setting_arg in cl_args.settings:
                 gobig_skip_ratio = (settings_file['gobig_skip_ratio'])
             if is_json_key_present(settings_file, 'gobig_overlap'):
                 gobig_overlap = (settings_file['gobig_overlap'])
+            if is_json_key_present(settings_file, 'gobig_maximize'):
+                gobig_maximize = (settings_file['gobig_maximize'])
             if is_json_key_present(settings_file, 'symmetry_loss'):
                 symmetry_loss_v = (settings_file['symmetry_loss'])
                 print("symmetry_loss was depracated, please use symmetry_loss_v in the future")
@@ -832,6 +835,8 @@ for setting_arg in cl_args.settings:
                     symm_loss_scale = (settings_file['symm_loss_scale'])
             if is_json_key_present(settings_file, 'symm_switch'):
                 symm_switch = int(clampval('symm_switch', 1, (settings_file['symm_switch']), steps))
+            if is_json_key_present(settings_file, 'simple_symmetry'):
+                simple_symmetry = (settings_file['simple_symmetry'])
             if is_json_key_present(settings_file, 'use_jpg'):
                 use_jpg = (settings_file['use_jpg'])
             if is_json_key_present(settings_file, 'render_mask'):
@@ -1675,12 +1680,15 @@ def do_run(batch_num, slice_num=-1):
 
         imgToSharpen = None
         adjustment_prompt = []
+        do_samples = True
         if slice_num >= 0:
             progressBar.set_description(f'Slice {slice_num} of {slices_todo}: ')
         else:
             progressBar.set_description(f'Image {batch_num + 1} of {n_batches}: ')
         while cur_t >= stop_early:
-            samples = do_sample_fn(init, steps - cur_t - 1)
+            if do_samples == True:
+                samples = do_sample_fn(init, steps - cur_t - 1)
+                do_samples = False
             for j, sample in enumerate(samples):
                 actual_run_steps += 1
                 if args.cool_down >= 1:
@@ -1692,10 +1700,7 @@ def do_run(batch_num, slice_num=-1):
                     cur_t = -1
 
                 intermediateStep = False
-                if args.steps_per_checkpoint is not None:
-                    if actual_run_steps % steps_per_checkpoint == 0 and actual_run_steps > 0:
-                        intermediateStep = True
-                elif actual_run_steps in args.intermediate_saves:
+                if actual_run_steps in args.intermediate_saves:
                     intermediateStep = True
 
                 if actual_run_steps % args.display_rate == 0 or cur_t == -1 or intermediateStep == True:
@@ -1714,12 +1719,7 @@ def do_run(batch_num, slice_num=-1):
                                         save_num = batch_num
                                 filename = f'{args.batch_name}_{args.batchNum}_{save_num}.png'
                             else:
-                                # If we're working with percentages, append it
-                                if args.steps_per_checkpoint is not None:
-                                    filename = f'{args.batch_name}({args.batchNum})_{batch_num:04}-{percent:02}%.png'
-                                # Or else, if we're working with specific steps, append those
-                                else:
-                                    filename = f'{args.batch_name}({args.batchNum})_{batch_num:04}-{actual_run_steps:03}.png'
+                                filename = f'{args.batch_name}({args.batchNum})_{batch_num:04}-{actual_run_steps:03}.png'
                         image = TF.to_pil_image(image.add(1).div(2).clamp(0, 1))
                         # add some key metadata to the PNG if the commandline allows it
                         metadata = PngInfo()
@@ -1749,21 +1749,14 @@ def do_run(batch_num, slice_num=-1):
                                 image.save(f"progress{cl_args.cuda}.png")  # note the GPU being used if it's not 0, so it won't overwrite other GPU's work
                             else:
                                 image.save('progress.png')
-                        if args.steps_per_checkpoint is not None:
-                            if actual_run_steps % args.steps_per_checkpoint == 0 and actual_run_steps > 0:
-                                if args.intermediates_in_subfolder is True:
-                                    image.save(f'{partialFolder}/{filename}', quality = output_quality)
-                                else:
-                                    image.save(f'{batchFolder}/{filename}', quality = output_quality)
-                        else:
-                            if actual_run_steps in args.intermediate_saves:
-                                if args.intermediates_in_subfolder is True:
-                                    image.save(f'{partialFolder}/{filename}', quality = output_quality)
-                                else:
-                                    image.save(f'{batchFolder}/{filename}', quality = output_quality)
-                                if geninit is True:
-                                    image.save('geninit.png')
-                                    raise KeyboardInterrupt
+                        if actual_run_steps in args.intermediate_saves:
+                            if args.intermediates_in_subfolder is True:
+                                image.save(f'{partialFolder}/{filename}', quality = output_quality)
+                            else:
+                                image.save(f'{batchFolder}/{filename}', quality = output_quality)
+                            if geninit is True:
+                                image.save('geninit.png')
+                                raise KeyboardInterrupt
 
                         if cur_t == -1:
                             if args.animation_mode != "None":
@@ -1799,37 +1792,35 @@ def do_run(batch_num, slice_num=-1):
                                         print('ESRGAN resize failed. Make sure realesrgan-ncnn-vulkan is in your path (or in this directory)')
                                         print(e)
 
-                            # if (args.animation_mode == "None") and (letsgobig == False) and ((i + 1) < n_batches):
-                            #     seed = seed + 1
-                            #     progressBar.write(f'Image finished. Using seed {seed} for next image.')
-                            #     np.random.seed(seed)
-                            #     random.seed(seed)
-                            #     torch.manual_seed(seed)
                             if (batch_num + 1) < args.n_batches:
                                 progressBar.write(f'Image finished! Using seed {seed + batch_num + 1} for next image.')
                             else:
                                 progressBar.write(f'Image finished!')
 
-                    do_weights(steps - cur_t - 1, clip_managers)
+                    #is this do_weights needed?
+                    #do_weights(steps - cur_t - 1, clip_managers)
 
                 do_weights(steps - cur_t - 1, clip_managers)
 
-                image = sample['pred_xstart'][0]
-                image = TF.to_pil_image(image.add(1).div(2).clamp(0, 1))
-                stat = ImageStat.Stat(image)
-
-                brightness = sum(stat.mean) / len(stat.mean)
-                contrast = sum(stat.stddev) / len(stat.stddev)
+                def get_sample_as_image(sample):
+                    image = sample['pred_xstart'][0]
+                    image = TF.to_pil_image(image.add(1).div(2).clamp(0, 1))
+                    return image
 
                 s = steps - cur_t
 
                 # BRIGHTNESS and CONTRAST automatic correction
                 if (s % adjustment_interval == 0) and (s < (steps * .3)) and (fix_brightness_contrast == True):
+                    image = get_sample_as_image(sample)
+                    stat = ImageStat.Stat(image)
+                    brightness = sum(stat.mean) / len(stat.mean)
+                    contrast = sum(stat.stddev) / len(stat.stddev)
                     if (high_brightness_adjust and s > high_brightness_start and brightness > high_brightness_threshold):
                         progressBar.write(f"High brightness corrected at step {s}")
                         filter = ImageEnhance.Brightness(image)
                         image = filter.enhance(high_brightness_adjust_amount)
                         init = TF.to_tensor(image).to(device).unsqueeze(0).mul(2).sub(1)
+                        do_samples = True
                         break
 
                     if (low_brightness_adjust and s > low_brightness_start and brightness < low_brightness_threshold):
@@ -1837,6 +1828,7 @@ def do_run(batch_num, slice_num=-1):
                         filter = ImageEnhance.Brightness(image)
                         image = filter.enhance(low_brightness_adjust_amount)
                         init = TF.to_tensor(image).to(device).unsqueeze(0).mul(2).sub(1)
+                        do_samples = True
                         break
 
                     if (high_contrast_adjust and s > high_contrast_start and contrast > high_contrast_threshold):
@@ -1844,6 +1836,7 @@ def do_run(batch_num, slice_num=-1):
                         filter = ImageEnhance.Contrast(image)
                         image = filter.enhance(high_contrast_adjust_amount)
                         init = TF.to_tensor(image).to(device).unsqueeze(0).mul(2).sub(1)
+                        do_samples = True
                         break
 
                     if (low_contrast_adjust and s > low_contrast_start and contrast < low_contrast_threshold):
@@ -1851,7 +1844,20 @@ def do_run(batch_num, slice_num=-1):
                         filter = ImageEnhance.Contrast(image)
                         image = filter.enhance(low_contrast_adjust_amount)
                         init = TF.to_tensor(image).to(device).unsqueeze(0).mul(2).sub(1)
+                        do_samples = True
                         break
+
+                # A simpler version of symmetry that just mirrors half the current image and uses it as an init
+                if (actual_run_steps in args.simple_symmetry) and ((args.symmetry_loss_v == False) and (args.symmetry_loss_h == False)):
+                    image = get_sample_as_image(sample)
+                    progressBar.write(f"Performing simple symmetry at step {s}")
+                    left_image = image.crop((0,0,(int(side_x / 2)), side_y))
+                    right_image = left_image.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+                    image.paste(right_image, ((int(side_x / 2)), 0))
+                    init = TF.to_tensor(image).to(device).unsqueeze(0).mul(2).sub(1)
+                    #sample['pred_xstart'][0] = TF.to_tensor(image).to(device).unsqueeze(0).mul(2).sub(1) -- this didn't work at all
+                    do_samples = True
+                    break
 
                 if (cur_t == -1):
                     break
@@ -1942,23 +1948,6 @@ def save_settings():
         'extract_nth_frame': extract_nth_frame,
         'stop_early': stop_early,
         'fix_brightness_contrast': fix_brightness_contrast,
-        'adjustment_interval': adjustment_interval,
-        'high_contrast_threshold': high_contrast_threshold,
-        'high_contrast_adjust_amount': high_contrast_adjust_amount,
-        'high_contrast_start': high_contrast_start,
-        'high_contrast_adjust': high_contrast_adjust,
-        'low_contrast_threshold': low_contrast_threshold,
-        'low_contrast_adjust_amount': low_contrast_adjust_amount,
-        'low_contrast_start': low_contrast_start,
-        'low_contrast_adjust': low_contrast_adjust,
-        'high_brightness_threshold': high_brightness_threshold,
-        'high_brightness_adjust_amount': high_brightness_adjust_amount,
-        'high_brightness_start': high_brightness_start,
-        'high_brightness_adjust': high_brightness_adjust,
-        'low_brightness_threshold': low_brightness_threshold,
-        'low_brightness_adjust_amount': low_brightness_adjust_amount,
-        'low_brightness_start': low_brightness_start,
-        'low_brightness_adjust': low_brightness_adjust,
         'sharpen_preset': sharpen_preset,
         'keep_unsharp': keep_unsharp,
         'gobig_scale': gobig_scale,
@@ -2652,11 +2641,8 @@ else:
     zoom = float(zoom)
     translation_x = float(translation_x)
     translation_y = float(translation_y)
-"""### Extra Settings
- Partial Saves, Diffusion Sharpening, Advanced Settings, Cutn Scheduling
-"""
 
-intermediates_in_subfolder = True  # @param{type: 'boolean'}
+intermediates_in_subfolder = True
 
 # Save a checkpoint at 20% for use as a later init image
 if geninit:
@@ -2664,29 +2650,33 @@ if geninit:
     print(f'debug: steps is {steps} and geninitamount is {geninitamount}')
     print(f'debug: intermediate_saves is {intermediate_saves}')
 
-# Save partial run at specific steps, or at percentage of steps
-if type(intermediate_saves) is list:
-    new_intermediate_saves = []
-    for isave in intermediate_saves:
-        if type(isave) is float:
-            isave = int(steps * isave)
-            new_intermediate_saves.append(isave)
-        elif type(isave) is int:
-            new_intermediate_saves.append(isave)
-    if len(new_intermediate_saves) > 0:
-        intermediate_saves = new_intermediate_saves
-    print(f'Note: will save at {intermediate_saves} steps')
-
-# Save partial run at certain divisions of total steps
-if type(intermediate_saves) is not list:
-    if intermediate_saves:
-        steps_per_checkpoint = math.floor((steps - skip_steps - 1) // (intermediate_saves + 1))
-        steps_per_checkpoint = steps_per_checkpoint if steps_per_checkpoint > 0 else 1
-        print(f'Will save every {steps_per_checkpoint} steps')
+# processes a setting that can be done at certain steps
+# which includes a number of steps based on overall steps, in which case we turn that into a list of specific steps
+# or if a list it can be a list of specific steps,
+# or a list of floats (multiple of overall steps) which we convert to specific steps
+# that way later we only have to deal with a list of specific steps. Crazy, right?
+def do_at_step(value, steps, skip_steps):
+    new_value = []
+    if type(value) is list:
+        for val in value:
+            if type(val) is float:
+                val = int(steps * val)
+            new_value.append(val)
+    elif value == 0:
+        new_value = [0]
     else:
-        steps_per_checkpoint = steps + 10
-else:
-    steps_per_checkpoint = None
+        interval = math.floor((steps - skip_steps - 1) // (value + 1))
+        this_step = interval
+        while this_step <= steps:
+            new_value.append(this_step)
+            this_step += interval
+    return new_value
+
+intermediate_saves = do_at_step(intermediate_saves, steps, skip_steps)
+
+if simple_symmetry != [0]:
+    simple_symmetry = do_at_step(simple_symmetry, steps, skip_steps)
+    print(f'Simple symmetry will happen at {simple_symmetry} steps')
 
 if intermediate_saves and intermediates_in_subfolder is True:
     partialFolder = f'{batchFolder}/partials'
@@ -2833,7 +2823,6 @@ args = {
     'cut_icgray_p': eval(cut_icgray_p),
     'intermediate_saves': intermediate_saves,
     'intermediates_in_subfolder': intermediates_in_subfolder,
-    'steps_per_checkpoint': steps_per_checkpoint,
     'perlin_init': perlin_init,
     'perlin_mode': perlin_mode,
     'set_seed': set_seed,
@@ -2850,6 +2839,7 @@ args = {
     'symmetry_loss_h': symmetry_loss_h,
     'symm_loss_scale': eval(symm_loss_scale),
     'symm_switch': symm_switch,
+    'simple_symmetry': simple_symmetry,
     'smooth_schedules': smooth_schedules,
     'render_mask': render_mask,
     'perlin_brightness': perlin_brightness,
@@ -2885,68 +2875,13 @@ if cl_args.gobiginit == None:
             torch.cuda.empty_cache()
 
 # FUNCTIONS FOR GO BIG MODE
-# gobig_scale = 2 # how many multiples of the original resolution. Eventually make this configurable
-slices_todo = 0  # we want 5 total slices for a 2x increase, 4 to match the total pixel increase + 1 to cover overlap
-#overlap = ((side_x * gobig_scale) / slices_todo) / slices_todo
-# Input is an image, return image with mask added as an alpha channel
-
+slices_todo = 0  # several things use this, so defining it out here
 
 def addalpha(im, mask):
     imr, img, imb, ima = im.split()
     mmr, mmg, mmb, mma = mask.split()
     im = Image.merge('RGBA', [imr, img, imb, mma])  # we want the RGB from the original, but the transparency from the mask
     return(im)
-
-# take a source image and layer in the slices on top
-def mergeimgs(source, slices):
-    global slices_todo
-    source.convert("RGBA")
-    width, height = source.size
-    if gobig_vertical == True:
-        slice_width, slice_height = slices[0].size
-        slice_width -= 64  # remove overlap
-        paste_x = 0
-        for slice in slices:
-            source.alpha_composite(slice, (paste_x, 0))
-            paste_x += slice_width
-    return source
-
-# Slices an image into the configured number of chunks. Overlap is currently 64px but should become dynamic
-# Also slices render_masks to match
-def slice(source, rmask, imask):
-    global slices_todo
-    width, height = source.size
-    overlap = 64  # int(height / slices_todo / 4)
-    slices = []
-    slice_rmasks = []
-    slice_imasks = []
-    x = 0
-    y = 0
-    i = 0
-    if gobig_vertical == True:
-        slice_width = int(width / slices_todo)
-        slice_width = 64 * math.floor(slice_width / 64)  # round slice width down to the nearest 64
-        remainder = width - (slice_width * slices_todo)
-        while remainder > 0:
-            slices_todo += 1
-            remainder = remainder - slice_width
-        slice_width += overlap
-        edgex = slice_width
-        while i < slices_todo:
-            slices.append(source.crop((x, y, edgex, height)))
-            if rmask is not None:
-                slice_rmasks.append(rmask.crop((x, y, edgex, height)))
-            else:
-                slice_rmasks.append(None)
-            if imask is not None:
-                slice_imasks.append(imask.crop((x, y, edgex, height)))
-            else:
-                slice_imasks.append(None) # does this work?
-            x += slice_width - overlap
-            edgex = x + slice_width
-            i += 1
-    slices_with_rmasks = zip(slices, slice_rmasks, slice_imasks)
-    return slices_with_rmasks
 
 # Alternative method composites a grid of images at the positions provided
 def grid_merge(source, slices):
@@ -3002,6 +2937,18 @@ def grid_coords(target, original, overlap):
         while (dy + original_y) <= target_y:
             dy = dy + original_y - overlap
             dy_list.append((rx, dy))
+    # calculate a new size that will fill the canvas, which will be optionally used in grid_slice and go_big
+    last_coordx, last_coordy = dy_list[-1:][0]
+    render_edgey = last_coordy + original_y # outer bottom edge of the render canvas
+    render_edgex = last_coordx + original_x # outer side edge of the render canvas
+    scalarx = render_edgex / target_x
+    scalary = render_edgey / target_y
+    if scalarx <= scalary:
+        new_edgex = int(target_x * scalarx)
+        new_edgey = int(target_y * scalarx)
+    else:
+        new_edgex = int(target_x * scalary)
+        new_edgey = int(target_y * scalary)
     # now put all the chunks into one master list of coordinates (essentially reverse of how we calculated them so that the central slices will be on top)
     result = []
     for coords in dy_list[::-1]:
@@ -3013,12 +2960,16 @@ def grid_coords(target, original, overlap):
     for coords in lx_list[::-1]:
         result.append(coords)
     result.append(center[0])
-    return result
+    return result, (new_edgex, new_edgey)
 
-# Alternative method uses a grid of images that each equal the size of the original render
-def grid_slice(source, overlap, og_size=None): # rmask=None, imask=None,
-    width, height = og_size
-    coordinates = grid_coords(source.size, og_size, overlap)
+# Chop our source into a grid of images that each equal the size of the original render
+def grid_slice(source, overlap, og_size, maximize=False): 
+    width, height = og_size # size of the slices to be rendered
+    maximize = True # remove this once it's working
+    coordinates, new_size = grid_coords(source.size, og_size, overlap)
+    if maximize == True:
+        source = source.resize(new_size, get_resampling_mode()) # minor concern that we're resizing twice
+        coordinates, new_size = grid_coords(source.size, og_size, overlap) # re-do the coordinates with the new canvas size
     # loc_width and loc_height are the center point of the goal size, and we'll start there and work our way out
     slices = []
     for coordinate in coordinates:
@@ -3026,7 +2977,7 @@ def grid_slice(source, overlap, og_size=None): # rmask=None, imask=None,
         slices.append(((source.crop((x, y, x+width, y+height))), x, y))
     global slices_todo
     slices_todo = len(slices) - 1
-    return slices
+    return slices, new_size
 
 # FINALLY DO THE RUN
 try:
@@ -3069,12 +3020,6 @@ try:
             # To keep things simple (hah), we'll create a fully white render_mask to use in the case that there's no provided render_mask
             # that way there's going to be a render_mask no matter what, and we don't have to keep checking for it
             # And just to keep everyone on their toes, a render_mask is is for telling do_run where to render/not render, while a mask is for gobig to blend slices, and an init_mask is what to render against when rendering with an rmask -- got it?
-            if render_mask is not None:
-                source_render_mask = Image.open(render_mask).convert('RGBA')
-            else:
-                #source_render_mask = Image.new('RGBA', (args.side_x, args.side_y), color = (255,255,255))
-                source_render_mask = None
-
             # Resize init if needed, as well as any render mask. For now we assume the render mask matches the size of the init.
             if cl_args.gobiginit_scaled == False:
                 input_image = Image.open(progress_image).convert('RGBA')
@@ -3082,28 +3027,29 @@ try:
                 reside_y = side_y * gobig_scale
                 source_image = input_image.resize((reside_x, reside_y), get_resampling_mode())
                 input_image.close()
-                if source_render_mask is not None:
-                    source_render_mask = source_render_mask.resize((reside_x, reside_y), get_resampling_mode())
             else:
                 source_image = Image.open(progress_image).convert('RGBA')
                 og_size = (int(side_x / gobig_scale), int(side_y / gobig_scale)) # we want to render sections that are what the original pre-scaled size probably was
-            if init_masked is not None:
-                source_imask = Image.open(init_masked).convert('RGBA')
-                source_imask = source_imask.resize(source_image.size, get_resampling_mode()) # TODO if this works then do the source_render_mask the same way
-            else:
-                source_imask = None
             # Slice source_image into overlapping slices
-            slices = grid_slice(source_image, gobig_overlap, og_size)
-            if source_render_mask is not None:
+            slices, new_canvas_size = grid_slice(source_image, gobig_overlap, og_size)
+            # Gobig_maximize increases our render canvas to include otherwise wasted pixels.
+            if gobig_maximize == True: #TODO: optimize this so we don't have to run the slicer again
+                source_image = source_image.resize(new_canvas_size, get_resampling_mode())
+                slices, new_canvas_size = grid_slice(source_image, gobig_overlap, og_size) # now that we have the ultimate size, we have to get a new set of coords
+                print(f'GOBIG maximize is on. New size is now {source_image.size}')
+            if render_mask is not None:
+                source_render_mask = Image.open(render_mask).convert('RGBA')
+                source_render_mask = source_render_mask.resize(source_image.size, get_resampling_mode())
                 rmasks = grid_slice(source_render_mask, og_size)
             else:
                 rmasks = None
-            if source_imask is not None:
+            if init_masked is not None:
+                source_imask = Image.open(init_masked).convert('RGBA')
+                source_imask = source_imask.resize(source_image.size, get_resampling_mode())
                 imasks = grid_slice(source_imask, og_size)
             else:
                 imasks = None
 
-            #slices = slice(source_image, source_render_mask, source_imask)
             # Run PRD again for each slice, with proper init image paramaters, etc.
             betterslices = []
             #for chunk, chunk_rmask, chunk_imask in slices:
@@ -3154,6 +3100,9 @@ try:
                 args.side_x, args.side_y = chunk.size
                 side_x, side_y = chunk.size
                 args.fix_brightness_contrast = False
+                args.symm_loss_h = False
+                args.symm_loss_v = False
+                args.simple_symmetry = [0]
                 do_run(batch_image, count)
                 print(f'Finished slice, grabbing {progress_image} and adding it to betterslices.')
                 resultslice = Image.open(progress_image).convert('RGBA')
@@ -3178,7 +3127,7 @@ try:
             for betterslice, x, y in betterslices:
                 finished_slice = addalpha(betterslice, mask)
                 finished_slices.append((finished_slice, x, y))
-            # # Once we have all our images, mergeimgs back onto source.png, then save
+            # # Once we have all our images, use grid_merge back onto the source, then save
             final_output = grid_merge(source_image, finished_slices)
             final_output.save(final_output_image)
             print(f'\n\nGO BIG is complete!\n\n ***** NOTE *****\nYour output is saved as {final_output_image}!')

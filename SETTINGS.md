@@ -77,6 +77,7 @@ Note that a few of the settings can be randomly chosen -- see the section below 
 | **gobig_scale** | 2 | Amount to scale original image by (2 is recommended, 3 or 4 is getting nuts)
 | **gobig_skip_ratio** | 0.6 | Amount of steps to skip (60% is usually good - too high and there's not enough time for gobig to work -- too low and gobig will add unwanted detail)
 | **gobig_overlap** | 64 | Size in pixels for how much to overlap (blend) images in gobig mode, to hide seams
+| **gobig_maximize** | false | If true, the final render size for gobig will be extended to use areas that would otherwise not be used, effectively increasing the final image size by 10 to 30% for free!
 | **animation_mode** | None | Animation mode. Options are "None", "2D", "Video Input" - CAPS MATTER
 | **key_frames** | true | Animation stuff...
 | **angle** | "0:(0)"| Animation stuff...
@@ -90,6 +91,7 @@ Note that a few of the settings can be randomly chosen -- see the section below 
 | **symmetry_loss_h** | false | Set this to "true" to enable top/bottom symmetry during the render
 | **symm_loss_scale** |  20000 | helps control how closely each side should match during symmetry. Definitely play with this number to get the results you're looking for.
 | **symm_switch** | 45 | what step to stop doing symmetry mode
+| **simple_symmetry** | [0] | Alternate version of symmetry (beta). This will simply mirror the left side of the image to the right at whatever steps are listed (I recommend only doing this once or twice, and during the first two-thirds of the image. For 200 steps, maybe [25,100] is a good starting point). Note: only triggers if symmetry_loss_v and symmetry_loss_h are false. Note that you can also do values like .5 which will calculate to 50% of total steps.
 | **stop_early** | 0 | stop processing your image at a certain step
 | **use_jpg** | false | Save images as jpg rather than PNG (save disk space at cost of image quality)
 | **cool_down** | 0 | total # of idle seconds to add to your render, which will be divided between the steps, to let your GPU cool off.
