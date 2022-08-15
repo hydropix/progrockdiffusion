@@ -320,6 +320,16 @@ def estimate_vram_requirements(
     logger.debug('')
     logger.debug(f"\t{format_bytes(dynamic_max)}\tMAX")
 
-    logger.debug('')
-    logger.debug("\tESTIMATED PEAK ALLOCATION (static total + dynamic max):")
-    logger.debug(f"\t{format_bytes(static_sum + dynamic_max)}")
+    gpu_total = torch.cuda.get_device_properties(device).total_memory
+
+    print('')
+    print(f"ESTIMATED PEAK VRAM ALLOCATION: {format_bytes(static_sum + dynamic_max, include_byte_int=False)} (of {format_bytes(gpu_total, include_byte_int=False)})")
+    print('')
+    if (static_sum + dynamic_max) > gpu_total:
+        print('')
+        print('WARNING: Estimated memory use exceeds available memory. Consider:')
+        print('\t- Lowering Resolution (width and height)')
+        print('\t- Reducing cut_overview and/or cut_innercut')
+        print('\t- Reducing and/or disabling some of the larger CLIP models.')
+        print('')
+        print('')
