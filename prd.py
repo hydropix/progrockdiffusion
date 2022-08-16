@@ -2983,7 +2983,7 @@ def grid_slice(source, overlap, og_size, maximize=False):
 # FINALLY DO THE RUN
 try:
     if (cl_args.gui):
-        print("Using the gui this way is deprecated. Invoke it first with 'python prdgui.py'")
+        print("Using the gui this way is deprecated. Details on the new GUI are at https://github.com/KnoBuddy/visualdiffusion'")
     print(f'\nStarting batch!')
     for batch_image in range(n_batches):
         og_size = (side_x, side_y)
