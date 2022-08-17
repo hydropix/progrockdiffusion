@@ -2965,7 +2965,6 @@ def grid_coords(target, original, overlap):
 # Chop our source into a grid of images that each equal the size of the original render
 def grid_slice(source, overlap, og_size, maximize=False): 
     width, height = og_size # size of the slices to be rendered
-    maximize = True # remove this once it's working
     coordinates, new_size = grid_coords(source.size, og_size, overlap)
     if maximize == True:
         source = source.resize(new_size, get_resampling_mode()) # minor concern that we're resizing twice
@@ -3031,7 +3030,7 @@ try:
                 source_image = Image.open(progress_image).convert('RGBA')
                 og_size = (int(side_x / gobig_scale), int(side_y / gobig_scale)) # we want to render sections that are what the original pre-scaled size probably was
             # Slice source_image into overlapping slices
-            slices, new_canvas_size = grid_slice(source_image, gobig_overlap, og_size)
+            slices, new_canvas_size = grid_slice(source_image, gobig_overlap, og_size, gobig_maximize)
             # Gobig_maximize increases our render canvas to include otherwise wasted pixels.
             if gobig_maximize == True: #TODO: optimize this so we don't have to run the slicer again
                 source_image = source_image.resize(new_canvas_size, get_resampling_mode())
@@ -3040,13 +3039,13 @@ try:
             if render_mask is not None:
                 source_render_mask = Image.open(render_mask).convert('RGBA')
                 source_render_mask = source_render_mask.resize(source_image.size, get_resampling_mode())
-                rmasks = grid_slice(source_render_mask, og_size)
+                rmasks = grid_slice(source_render_mask, gobig_overlap, og_size)
             else:
                 rmasks = None
             if init_masked is not None:
                 source_imask = Image.open(init_masked).convert('RGBA')
                 source_imask = source_imask.resize(source_image.size, get_resampling_mode())
-                imasks = grid_slice(source_imask, og_size)
+                imasks = grid_slice(source_imask, gobig_overlap, og_size)
             else:
                 imasks = None
 
