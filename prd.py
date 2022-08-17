@@ -1957,6 +1957,7 @@ def save_settings():
         'symmetry_loss_h': symmetry_loss_h,
         'symm_loss_scale': symm_loss_scale,
         'symm_switch': symm_switch,
+        'simple_symmetry': simple_symmetry,
         'perlin_brightness': perlin_brightness,
         'perlin_contrast': perlin_contrast,
         'use_jpg': use_jpg
