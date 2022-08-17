@@ -61,7 +61,9 @@ sys.path.append(f'{root_path}/guided-diffusion')  # noqa: E402
 sys.path.append(f'{root_path}/open_clip/src')  # noqa: E402
 
 from cut_modules.make_cutouts import MakeCutoutsDango, MakeCutouts
+import helpers.settings
 from helpers.utils import fetch
+from helpers.utils import createPath
 from os.path import exists
 import urllib.request
 import hashlib
@@ -108,16 +110,6 @@ from model_managers.clip_manager import ClipManager, CLIP_NAME_MAP
 
 from attr import has
 
-
-# Simple create paths taken with modifications from Datamosh's Batch VQGAN+CLIP notebook
-def createPath(filepath):
-    if path.exists(filepath) == False:
-        os.makedirs(filepath)
-        print(f'Made {filepath}')
-    else:
-        pass
-
-
 initDirPath = f'{root_path}/init_images'
 createPath(initDirPath)
 outDirPath = f'{root_path}/images_out'
@@ -148,116 +140,117 @@ if sys.platform == 'win32':
 
 
 # Setting default values for everything, which can then be overridden by settings files.
-batch_name = "Default"
-clip_guidance_scale = "auto"
-tv_scale = 0
-range_scale = 150
-sat_scale = 0
-n_batches = 1
-display_rate = 20
-cutn_batches = 4
-cutn_batches_final = None
-max_frames = 10000
-interp_spline = "Linear"
-init_image = None
-init_masked = None
-init_scale = 1000
-skip_steps = 0
-skip_steps_ratio = 0.0
-frames_scale = 1500
-frames_skip_steps = "60%"
-perlin_init = False
-perlin_mode = "mixed"
-perlin_contrast = 1.0
-perlin_brightness = 1.0
-skip_augs = False
-randomize_class = True
-clip_denoised = False
-clamp_grad = True
-clamp_max = "auto"
-set_seed = "random_seed"
-fuzzy_prompt = False
-rand_mag = 0.05
-eta = "auto"
-width_height = [832, 512]
-width_height_scale = 1
-diffusion_model = "512x512_diffusion_uncond_finetune_008100"
-use_secondary_model = True
-steps = 250
-sampling_mode = "ddim"
-diffusion_steps = 1000
-ViTB32 = 1.0
-ViTB16 = 0.0
-ViTL14 = 0.0
-ViTL14_336 = 0.0
-RN101 = 0.0
-RN50 = 0.0
-RN50x4 = 0.0
-RN50x16 = 0.0
-RN50x64 = 0.0
-ViTB32_laion2b_e16 = 1.0
-ViTB32_laion400m_e31 = 0.0
-ViTB32_laion400m_32 = 0.0
-ViTB32quickgelu_laion400m_e31 = 0.0
-ViTB32quickgelu_laion400m_e32 = 0.0
-ViTB16_laion400m_e31 = 0.0
-ViTB16_laion400m_e32 = 0.0
-RN50_yffcc15m = 0.0
-RN50_cc12m = 0.0
-RN50_quickgelu_yfcc15m = 0.0
-RN50_quickgelu_cc12m = 0.0
-RN101_yfcc15m = 0.0
-RN101_quickgelu_yfcc15m = 0.0
-cut_overview = "[12]*400+[4]*600"
-cut_innercut = "[4]*400+[12]*600"
-cut_ic_pow = "[1]*500+[10]*500"
-cut_ic_pow_final = None
-cut_icgray_p = "[0.2]*400+[0]*600"
-cut_heatmaps = False
-smooth_schedules = False
-key_frames = True
-angle = "0:(0)"
-zoom = "0: (1), 10: (1.05)"
-translation_x = "0: (0)"
-translation_y = "0: (0)"
-video_init_path = "/content/training.mp4"
-extract_nth_frame = 2
-intermediate_saves = [0]
-add_metadata = True
-stop_early = 0
-fix_brightness_contrast = True
-adjustment_interval = 10
-high_contrast_threshold = 80
-high_contrast_adjust_amount = 0.85
-high_contrast_start = 20
-high_contrast_adjust = True
-low_contrast_threshold = 20
-low_contrast_adjust_amount = 2
-low_contrast_start = 20
-low_contrast_adjust = True
-high_brightness_threshold = 180
-high_brightness_adjust_amount = 0.85
-high_brightness_start = 0
-high_brightness_adjust = True
-low_brightness_threshold = 40
-low_brightness_adjust_amount = 1.15
-low_brightness_start = 0
-low_brightness_adjust = True
-sharpen_preset = 'Off'  # @param ['Off', 'Faster', 'Fast', 'Slow', 'Very Slow']
-keep_unsharp = False  # @param{type: 'boolean'}
-animation_mode = "None"  # "Video Input", "2D"
-gobig_scale = 2
-gobig_skip_ratio = 0.6
-gobig_overlap = 64
-gobig_maximize = False
-symmetry_loss_v = False
-symmetry_loss_h = False
-symm_loss_scale = "[2500]*1000"
-symm_switch = 45
-simple_symmetry = [0]
-use_jpg = False
-render_mask = None
-cool_down = 0
+settings = Settings()
+# batch_name = "Default"
+# clip_guidance_scale = "auto"
+# tv_scale = 0
+# range_scale = 150
+# sat_scale = 0
+# n_batches = 1
+# display_rate = 20
+# cutn_batches = 4
+# cutn_batches_final = None
+# max_frames = 10000
+# interp_spline = "Linear"
+# init_image = None
+# init_masked = None
+# init_scale = 1000
+# skip_steps = 0
+# skip_steps_ratio = 0.0
+# frames_scale = 1500
+# frames_skip_steps = "60%"
+# perlin_init = False
+# perlin_mode = "mixed"
+# perlin_contrast = 1.0
+# perlin_brightness = 1.0
+# skip_augs = False
+# randomize_class = True
+# clip_denoised = False
+# clamp_grad = True
+# clamp_max = "auto"
+# set_seed = "random_seed"
+# fuzzy_prompt = False
+# rand_mag = 0.05
+# eta = "auto"
+# width_height = [832, 512]
+# width_height_scale = 1
+# diffusion_model = "512x512_diffusion_uncond_finetune_008100"
+# use_secondary_model = True
+# steps = 250
+# sampling_mode = "ddim"
+# diffusion_steps = 1000
+# ViTB32 = 1.0
+# ViTB16 = 0.0
+# ViTL14 = 0.0
+# ViTL14_336 = 0.0
+# RN101 = 0.0
+# RN50 = 0.0
+# RN50x4 = 0.0
+# RN50x16 = 0.0
+# RN50x64 = 0.0
+# ViTB32_laion2b_e16 = 1.0
+# ViTB32_laion400m_e31 = 0.0
+# ViTB32_laion400m_32 = 0.0
+# ViTB32quickgelu_laion400m_e31 = 0.0
+# ViTB32quickgelu_laion400m_e32 = 0.0
+# ViTB16_laion400m_e31 = 0.0
+# ViTB16_laion400m_e32 = 0.0
+# RN50_yffcc15m = 0.0
+# RN50_cc12m = 0.0
+# RN50_quickgelu_yfcc15m = 0.0
+# RN50_quickgelu_cc12m = 0.0
+# RN101_yfcc15m = 0.0
+# RN101_quickgelu_yfcc15m = 0.0
+# cut_overview = "[12]*400+[4]*600"
+# cut_innercut = "[4]*400+[12]*600"
+# cut_ic_pow = "[1]*500+[10]*500"
+# cut_ic_pow_final = None
+# cut_icgray_p = "[0.2]*400+[0]*600"
+# cut_heatmaps = False
+# smooth_schedules = False
+# key_frames = True
+# angle = "0:(0)"
+# zoom = "0: (1), 10: (1.05)"
+# translation_x = "0: (0)"
+# translation_y = "0: (0)"
+# video_init_path = "/content/training.mp4"
+# extract_nth_frame = 2
+# intermediate_saves = [0]
+# add_metadata = True
+# stop_early = 0
+# fix_brightness_contrast = True
+# adjustment_interval = 10
+# high_contrast_threshold = 80
+# high_contrast_adjust_amount = 0.85
+# high_contrast_start = 20
+# high_contrast_adjust = True
+# low_contrast_threshold = 20
+# low_contrast_adjust_amount = 2
+# low_contrast_start = 20
+# low_contrast_adjust = True
+# high_brightness_threshold = 180
+# high_brightness_adjust_amount = 0.85
+# high_brightness_start = 0
+# high_brightness_adjust = True
+# low_brightness_threshold = 40
+# low_brightness_adjust_amount = 1.15
+# low_brightness_start = 0
+# low_brightness_adjust = True
+# sharpen_preset = 'Off'  # @param ['Off', 'Faster', 'Fast', 'Slow', 'Very Slow']
+# keep_unsharp = False  # @param{type: 'boolean'}
+# animation_mode = "None"  # "Video Input", "2D"
+# gobig_scale = 2
+# gobig_skip_ratio = 0.6
+# gobig_overlap = 64
+# gobig_maximize = False
+# symmetry_loss_v = False
+# symmetry_loss_h = False
+# symm_loss_scale = "[2500]*1000"
+# symm_switch = 45
+# simple_symmetry = [0]
+# use_jpg = False
+# render_mask = None
+# cool_down = 0
 
 # Command Line parse
 
@@ -496,80 +489,80 @@ logging.basicConfig(level=numeric_level)
 logger = logging.getLogger(__name__)
 
 
-# Simple check to see if a key is present in the settings file
-def is_json_key_present(json, key, subkey="none"):
-    try:
-        if subkey != "none":
-            buf = json[key][subkey]
-        else:
-            buf = json[key]
-    except KeyError:
-        return False
-    if type(buf) == type(None):
-        return False
-    return True
+# # Simple check to see if a key is present in the settings file
+# def is_json_key_present(json, key, subkey="none"):
+#     try:
+#         if subkey != "none":
+#             buf = json[key][subkey]
+#         else:
+#             buf = json[key]
+#     except KeyError:
+#         return False
+#     if type(buf) == type(None):
+#         return False
+#     return True
 
 
-# A simple way to ensure values are in an accceptable range, and also return a random value if desired
-def clampval(var_name, minval, val, maxval):
-    if val == "random":
-        try:
-            val = random.randint(minval, maxval)
-        except:
-            val = random.uniform(minval, maxval)
-        return val
-    # Auto is handled later, so we just return it back as is
-    elif val == "auto":
-        return val
-    elif type(val) == str:
-        return val
-    elif val < minval and not cl_args.skip_checks:
-        print(f'Warning: {var_name} is below {minval} - if you get bad results, consider adjusting.')
-        return val
-    elif val > maxval and not cl_args.skip_checks:
-        print(f'Warning: {var_name} is above {maxval} - if you get bad results, consider adjusting.')
-        return val
-    else:
-        return val
+# # A simple way to ensure values are in an accceptable range, and also return a random value if desired
+# def clampval(var_name, minval, val, maxval):
+#     if val == "random":
+#         try:
+#             val = random.randint(minval, maxval)
+#         except:
+#             val = random.uniform(minval, maxval)
+#         return val
+#     # Auto is handled later, so we just return it back as is
+#     elif val == "auto":
+#         return val
+#     elif type(val) == str:
+#         return val
+#     elif val < minval and not cl_args.skip_checks:
+#         print(f'Warning: {var_name} is below {minval} - if you get bad results, consider adjusting.')
+#         return val
+#     elif val > maxval and not cl_args.skip_checks:
+#         print(f'Warning: {var_name} is above {maxval} - if you get bad results, consider adjusting.')
+#         return val
+#     else:
+#         return val
 
-# Dynamic value - takes ready-made possible options within a string and returns the string with an option randomly selected
-# Format is "I will return <Value1|Value2|Value3> in this string"
-# Which would come back as "I will return Value2 in this string" (for example)
-# Optionally if a value of ^^# is first, it means to return that many dynamic values,
-# so <^^2|Value1|Value2|Value3> in the above example would become:
-# "I will return Value3 Value2 in this string"
-# note: for now assumes a string for return. TODO return a desired type
+# # Dynamic value - takes ready-made possible options within a string and returns the string with an option randomly selected
+# # Format is "I will return <Value1|Value2|Value3> in this string"
+# # Which would come back as "I will return Value2 in this string" (for example)
+# # Optionally if a value of ^^# is first, it means to return that many dynamic values,
+# # so <^^2|Value1|Value2|Value3> in the above example would become:
+# # "I will return Value3 Value2 in this string"
+# # note: for now assumes a string for return. TODO return a desired type
 
 
-def dynamic_value(incoming):
-    if type(incoming) == str:  # we only need to do something if it's a string...
-        if incoming == "auto" or incoming == "random":
-            return incoming
-        elif "<" in incoming:   # ...and if < is in the string...
-            text = incoming
-            logger.debug(f'Original value: {text}')
-            while "<" in text:
-                start = text.index('<')
-                end = text.index('>')
-                swap = text[(start + 1):end]
-                value = ""
-                count = 1
-                values = swap.split('|')
-                if "^^" in values[0]:
-                    count = values[0]
-                    values.pop(0)
-                    count = int(count[2:])
-                random.shuffle(values)
-                for i in range(count):
-                    value = value + values[i] + " "
-                value = value[:-1]  # remove final space
-                text = text.replace(f'<{swap}>', value)
-            logger.debug(f'Dynamic value: {text}')
-            return text
-        else:
-            return incoming
-    else:
-        return incoming
+# def dynamic_value(incoming):
+#     if type(incoming) == str:  # we only need to do something if it's a string...
+#         if incoming == "auto" or incoming == "random":
+#             return incoming
+#         elif "<" in incoming:   # ...and if < is in the string...
+#             text = incoming
+#             logger.debug(f'Original value: {text}')
+#             while "<" in text:
+#                 start = text.index('<')
+#                 end = text.index('>')
+#                 swap = text[(start + 1):end]
+#                 value = ""
+#                 count = 1
+#                 values = swap.split('|')
+#                 if "^^" in values[0]:
+#                     count = values[0]
+#                     values.pop(0)
+#                     count = int(count[2:])
+#                 random.shuffle(values)
+#                 for i in range(count):
+#                     value = value + values[i] + " "
+#                 value = value[:-1]  # remove final space
+#                 text = text.replace(f'<{swap}>', value)
+#             logger.debug(f'Dynamic value: {text}')
+#             return text
+#         else:
+#             return incoming
+#     else:
+#         return incoming
 
 
 print('\nPROG ROCK DIFFUSION')
@@ -589,261 +582,7 @@ for setting_arg in cl_args.settings:
         with open(setting_arg, 'r', encoding="utf-8") as json_file:
             print(f'Parsing {setting_arg}')
             settings_file = json.load(json_file)
-            # If any of these are in this settings file they'll be applied, overwriting any previous value.
-            # Some are passed through clampval first to make sure they are within bounds (or randomized if desired)
-            if is_json_key_present(settings_file, 'batch_name'):
-                batch_name = (settings_file['batch_name'])
-            if is_json_key_present(settings_file, 'text_prompts'):
-                text_prompts = (settings_file['text_prompts'])
-            if is_json_key_present(settings_file, 'image_prompts'):
-                image_prompts = (settings_file['image_prompts'])
-            if is_json_key_present(settings_file, 'clip_guidance_scale'):
-                if (type(settings_file['clip_guidance_scale']) == str) and ((settings_file['clip_guidance_scale']) != "random"):
-                    clip_guidance_scale = dynamic_value(settings_file['clip_guidance_scale'])
-                else:
-                    clip_guidance_scale = clampval('clip_guidance_scale', 1500, (settings_file['clip_guidance_scale']), 100000)
-            if is_json_key_present(settings_file, 'tv_scale'):
-                if (settings_file['tv_scale']) != "auto" and (settings_file['tv_scale']) != "random":
-                    tv_scale = int(dynamic_value(settings_file['tv_scale']))
-                tv_scale = clampval('tv_scale', 0, tv_scale, 1000)
-            if is_json_key_present(settings_file, 'range_scale'):
-                if (settings_file['range_scale']) != "auto" and (settings_file['range_scale']) != "random":
-                    range_scale = int(dynamic_value(settings_file['range_scale']))
-                range_scale = clampval('range_scale', 0, range_scale, 1000)
-            if is_json_key_present(settings_file, 'sat_scale'):
-                if (settings_file['sat_scale']) != "auto" and (settings_file['sat_scale']) != "random":
-                    sat_scale = int(dynamic_value(settings_file['sat_scale']))
-                sat_scale = clampval('sat_scale', 0, sat_scale, 20000)
-            if is_json_key_present(settings_file, 'n_batches'):
-                n_batches = (settings_file['n_batches'])
-            if is_json_key_present(settings_file, 'display_rate'):
-                display_rate = (settings_file['display_rate'])
-            if is_json_key_present(settings_file, 'cutn_batches'):
-                if type(settings_file['cutn_batches']) == str:
-                    cutn_batches = dynamic_value(settings_file['cutn_batches'])
-                else:
-                    cutn_batches = (settings_file['cutn_batches'])
-            if is_json_key_present(settings_file, 'cutn_batches_final'):
-                cutn_batches_final = (settings_file['cutn_batches_final'])
-            if is_json_key_present(settings_file, 'max_frames'):
-                max_frames = (settings_file['max_frames'])
-            if is_json_key_present(settings_file, 'interp_spline'):
-                interp_spline = (settings_file['interp_spline'])
-            if is_json_key_present(settings_file, 'init_image'):
-                init_image = (settings_file['init_image'])
-            if is_json_key_present(settings_file, 'init_masked'):
-                init_masked = (settings_file['init_masked'])
-            if is_json_key_present(settings_file, 'init_scale'):
-                init_scale = (settings_file['init_scale'])
-            if is_json_key_present(settings_file, 'skip_steps'):
-                skip_steps = int(dynamic_value(settings_file['skip_steps']))
-            if is_json_key_present(settings_file, 'skip_steps_ratio'):
-                skip_steps_ratio = (settings_file['skip_steps_ratio'])
-            if is_json_key_present(settings_file, 'stop_early'):
-                stop_early = (settings_file['stop_early'])
-            if is_json_key_present(settings_file, 'frames_scale'):
-                frames_scale = (settings_file['frames_scale'])
-            if is_json_key_present(settings_file, 'frames_skip_steps'):
-                frames_skip_steps = (settings_file['frames_skip_steps'])
-            if is_json_key_present(settings_file, 'perlin_init'):
-                perlin_init = (settings_file['perlin_init'])
-            if is_json_key_present(settings_file, 'perlin_mode'):
-                perlin_mode = (settings_file['perlin_mode'])
-            if is_json_key_present(settings_file, 'perlin_contrast'):
-                perlin_contrast = (settings_file['perlin_contrast'])
-            if is_json_key_present(settings_file, 'perlin_brightness'):
-                perlin_brightness = (settings_file['perlin_brightness'])
-            if is_json_key_present(settings_file, 'skip_augs'):
-                skip_augs = (settings_file['skip_augs'])
-            if is_json_key_present(settings_file, 'randomize_class'):
-                randomize_class = (settings_file['randomize_class'])
-            if is_json_key_present(settings_file, 'clip_denoised'):
-                clip_denoised = (settings_file['clip_denoised'])
-            if is_json_key_present(settings_file, 'clamp_grad'):
-                clamp_grad = (settings_file['clamp_grad'])
-            if is_json_key_present(settings_file, 'clamp_max'):
-                if (type(settings_file['clamp_max']) == str) and ((settings_file['clamp_max']) != "random"):
-                    clamp_max = dynamic_value(settings_file['clamp_max'])
-                else:
-                    clamp_max = clampval('clamp_max', 0.001, settings_file['clamp_max'], 0.3)
-            if is_json_key_present(settings_file, 'set_seed'):
-                set_seed = (settings_file['set_seed'])
-            if is_json_key_present(settings_file, 'fuzzy_prompt'):
-                fuzzy_prompt = (settings_file['fuzzy_prompt'])
-            if is_json_key_present(settings_file, 'rand_mag'):
-                rand_mag = clampval('rand_mag', 0.0, (settings_file['rand_mag']), 0.999)
-            if is_json_key_present(settings_file, 'eta'):
-                if (settings_file['eta']) != "auto" and (settings_file['eta']) != "random":
-                    eta = float(dynamic_value(settings_file['eta']))
-                eta = clampval('eta', 0.0, eta, 0.999)
-            if is_json_key_present(settings_file, 'width'):
-                width_height = [(settings_file['width']),
-                                (settings_file['height'])]
-            if is_json_key_present(settings_file, 'width_height_scale'):
-                width_height_scale = (settings_file['width_height_scale'])
-            if is_json_key_present(settings_file, 'diffusion_model'):
-                diffusion_model = (settings_file['diffusion_model'])
-            if is_json_key_present(settings_file, 'use_secondary_model'):
-                use_secondary_model = (settings_file['use_secondary_model'])
-            if is_json_key_present(settings_file, 'steps'):
-                steps = int(dynamic_value(settings_file['steps']))
-            if is_json_key_present(settings_file, 'sampling_mode'):
-                sampling_mode = (settings_file['sampling_mode'])
-            if is_json_key_present(settings_file, 'diffusion_steps'):
-                diffusion_steps = (settings_file['diffusion_steps'])
-            if is_json_key_present(settings_file, 'ViTB32'):
-                ViTB32 = float(dynamic_value(settings_file['ViTB32']))
-            if is_json_key_present(settings_file, 'ViTB16'):
-                ViTB16 = float(dynamic_value(settings_file['ViTB16']))
-            if is_json_key_present(settings_file, 'ViTL14'):
-                ViTL14 = float(dynamic_value(settings_file['ViTL14']))
-            if is_json_key_present(settings_file, 'ViTL14_336'):
-                ViTL14_336 = float(dynamic_value(settings_file['ViTL14_336']))
-            if is_json_key_present(settings_file, 'RN101'):
-                RN101 = float(dynamic_value(settings_file['RN101']))
-            if is_json_key_present(settings_file, 'RN50'):
-                RN50 = float(dynamic_value(settings_file['RN50']))
-            if is_json_key_present(settings_file, 'RN50x4'):
-                RN50x4 = float(dynamic_value(settings_file['RN50x4']))
-            if is_json_key_present(settings_file, 'RN50x16'):
-                RN50x16 = float(dynamic_value(settings_file['RN50x16']))
-            if is_json_key_present(settings_file, 'RN50x64'):
-                RN50x64 = float(dynamic_value(settings_file['RN50x64']))
-            if is_json_key_present(settings_file, 'ViTB32_laion2b_e16'):
-                ViTB32_laion2b_e16 = float(dynamic_value(settings_file['ViTB32_laion2b_e16']))
-            if is_json_key_present(settings_file, 'ViTB32_laion400m_e31'):
-                ViTB32_laion400m_e31 = float(dynamic_value(settings_file['ViTB32_laion400m_e31']))
-            if is_json_key_present(settings_file, 'ViTB32_laion400m_32'):
-                ViTB32_laion400m_32 = float(dynamic_value(settings_file['ViTB32_laion400m_32']))
-            if is_json_key_present(settings_file, 'ViTB32quickgelu_laion400m_e31'):
-                ViTB32quickgelu_laion400m_e31 = float(dynamic_value(settings_file['ViTB32quickgelu_laion400m_e31']))
-            if is_json_key_present(settings_file, 'ViTB32quickgelu_laion400m_e32'):
-                ViTB32quickgelu_laion400m_e32 = float(dynamic_value(settings_file['ViTB32quickgelu_laion400m_e32']))
-            if is_json_key_present(settings_file, 'ViTB16_laion400m_e31'):
-                ViTB16_laion400m_e31 = float(dynamic_value(settings_file['ViTB16_laion400m_e31']))
-            if is_json_key_present(settings_file, 'ViTB16_laion400m_e32'):
-                ViTB16_laion400m_e32 = float(dynamic_value(settings_file['ViTB16_laion400m_e32']))
-            if is_json_key_present(settings_file, 'RN50_yffcc15m'):
-                RN50_yffcc15m = float(dynamic_value(settings_file['RN50_yffcc15m']))
-            if is_json_key_present(settings_file, 'RN50_cc12m'):
-                RN50_cc12m = float(dynamic_value(settings_file['RN50_cc12m']))
-            if is_json_key_present(settings_file, 'RN50_quickgelu_yfcc15m'):
-                RN50_quickgelu_yfcc15m = float(dynamic_value(settings_file['RN50_quickgelu_yfcc15m']))
-            if is_json_key_present(settings_file, 'RN50_quickgelu_cc12m'):
-                RN50_quickgelu_cc12m = float(dynamic_value(settings_file['RN50_quickgelu_cc12m']))
-            if is_json_key_present(settings_file, 'RN101_yfcc15m'):
-                RN101_yfcc15m = float(dynamic_value(settings_file['RN101_yfcc15m']))
-            if is_json_key_present(settings_file, 'RN101_quickgelu_yfcc15m'):
-                RN101_quickgelu_yfcc15m = float(dynamic_value(settings_file['RN101_quickgelu_yfcc15m']))
-            if is_json_key_present(settings_file, 'cut_overview'):
-                cut_overview = dynamic_value(settings_file['cut_overview'])
-            if is_json_key_present(settings_file, 'cut_innercut'):
-                cut_innercut = dynamic_value(settings_file['cut_innercut'])
-            if is_json_key_present(settings_file, 'cut_ic_pow'):
-                if (type(settings_file['cut_ic_pow']) == str) and ((settings_file['cut_ic_pow']) != "random"):
-                    cut_ic_pow = dynamic_value(settings_file['cut_ic_pow'])
-                else:
-                    cut_ic_pow = clampval('cut_ic_pow', 0.0, (settings_file['cut_ic_pow']), 100)
-            if is_json_key_present(settings_file, 'cut_ic_pow_final'):
-                cut_ic_pow_final = clampval('cut_ic_pow_final', 0.5, (settings_file['cut_ic_pow_final']), 100)
-            if is_json_key_present(settings_file, 'cut_icgray_p'):
-                cut_icgray_p = (settings_file['cut_icgray_p'])
-            if is_json_key_present(settings_file, 'cut_heatmaps'):
-                cut_heatmaps = (settings_file['cut_heatmaps'])
-            if is_json_key_present(settings_file, 'smooth_schedules'):
-                smooth_schedules = (settings_file['smooth_schedules'])
-            if is_json_key_present(settings_file, 'key_frames'):
-                key_frames = (settings_file['key_frames'])
-            if is_json_key_present(settings_file, 'angle'):
-                angle = (settings_file['angle'])
-            if is_json_key_present(settings_file, 'zoom'):
-                zoom = (settings_file['zoom'])
-            if is_json_key_present(settings_file, 'translation_x'):
-                translation_x = (settings_file['translation_x'])
-            if is_json_key_present(settings_file, 'translation_y'):
-                translation_y = (settings_file['translation_y'])
-            if is_json_key_present(settings_file, 'video_init_path'):
-                video_init_path = (settings_file['video_init_path'])
-            if is_json_key_present(settings_file, 'extract_nth_frame'):
-                extract_nth_frame = (settings_file['extract_nth_frame'])
-            if is_json_key_present(settings_file, 'intermediate_saves'):
-                intermediate_saves = (settings_file['intermediate_saves'])
-            if is_json_key_present(settings_file, 'fix_brightness_contrast'):
-                fix_brightness_contrast = (settings_file['fix_brightness_contrast'])
-            if is_json_key_present(settings_file, 'adjustment_interval'):
-                adjustment_interval = (settings_file['adjustment_interval'])
-            if is_json_key_present(settings_file, 'high_contrast_threshold'):
-                high_contrast_threshold = (settings_file['high_contrast_threshold'])
-            if is_json_key_present(settings_file, 'high_contrast_adjust_amount'):
-                high_contrast_adjust_amount = (settings_file['high_contrast_adjust_amount'])
-            if is_json_key_present(settings_file, 'high_contrast_start'):
-                high_contrast_start = (settings_file['high_contrast_start'])
-            if is_json_key_present(settings_file, 'high_contrast_adjust'):
-                high_contrast_adjust = (settings_file['high_contrast_adjust'])
-            if is_json_key_present(settings_file, 'low_contrast_threshold'):
-                low_contrast_threshold = (settings_file['low_contrast_threshold'])
-            if is_json_key_present(settings_file, 'low_contrast_adjust_amount'):
-                low_contrast_adjust_amount = (settings_file['low_contrast_adjust_amount'])
-            if is_json_key_present(settings_file, 'low_contrast_start'):
-                low_contrast_start = (settings_file['low_contrast_start'])
-            if is_json_key_present(settings_file, 'low_contrast_adjust'):
-                low_contrast_adjust = (settings_file['low_contrast_adjust'])
-            if is_json_key_present(settings_file, 'high_brightness_threshold'):
-                high_brightness_threshold = (settings_file['high_brightness_threshold'])
-            if is_json_key_present(settings_file, 'high_brightness_adjust_amount'):
-                high_brightness_adjust_amount = (settings_file['high_brightness_adjust_amount'])
-            if is_json_key_present(settings_file, 'high_brightness_start'):
-                high_brightness_start = (settings_file['high_brightness_start'])
-            if is_json_key_present(settings_file, 'high_brightness_adjust'):
-                high_brightness_adjust = (settings_file['high_brightness_adjust'])
-            if is_json_key_present(settings_file, 'low_brightness_threshold'):
-                low_brightness_threshold = (settings_file['low_brightness_threshold'])
-            if is_json_key_present(settings_file, 'low_brightness_adjust_amount'):
-                low_brightness_adjust_amount = (settings_file['low_brightness_adjust_amount'])
-            if is_json_key_present(settings_file, 'low_brightness_start'):
-                low_brightness_start = (settings_file['low_brightness_start'])
-            if is_json_key_present(settings_file, 'low_brightness_adjust'):
-                low_brightness_adjust = (settings_file['low_brightness_adjust'])
-            if is_json_key_present(settings_file, 'sharpen_preset'):
-                sharpen_preset = (settings_file['sharpen_preset'])
-            if is_json_key_present(settings_file, 'keep_unsharp'):
-                keep_unsharp = (settings_file['keep_unsharp'])
-            if is_json_key_present(settings_file, 'animation_mode'):
-                animation_mode = (settings_file['animation_mode'])
-            if is_json_key_present(settings_file, 'gobig_scale'):
-                gobig_scale = int(settings_file['gobig_scale'])
-            if is_json_key_present(settings_file, 'gobig_skip_ratio'):
-                gobig_skip_ratio = (settings_file['gobig_skip_ratio'])
-            if is_json_key_present(settings_file, 'gobig_overlap'):
-                gobig_overlap = (settings_file['gobig_overlap'])
-            if is_json_key_present(settings_file, 'gobig_maximize'):
-                gobig_maximize = (settings_file['gobig_maximize'])
-            if is_json_key_present(settings_file, 'symmetry_loss'):
-                symmetry_loss_v = (settings_file['symmetry_loss'])
-                print("symmetry_loss was depracated, please use symmetry_loss_v in the future")
-            if is_json_key_present(settings_file, 'symmetry_loss_v'):
-                symmetry_loss_v = (settings_file['symmetry_loss_v'])
-            if is_json_key_present(settings_file, 'symmetry_loss_h'):
-                symmetry_loss_h = (settings_file['symmetry_loss_h'])
-            if is_json_key_present(settings_file, 'sloss_scale'):
-                print('"sloss_scale" is deprecated. Please update your settings to use "symm_loss_scale"')
-                symm_loss_scale = (settings_file['sloss_scale'])
-            if is_json_key_present(settings_file, 'symm_loss_scale'):
-                if type(settings_file['symm_loss_scale']) == str:
-                    symm_loss_scale = dynamic_value(settings_file['symm_loss_scale'])
-                else:
-                    symm_loss_scale = (settings_file['symm_loss_scale'])
-            if is_json_key_present(settings_file, 'symm_switch'):
-                symm_switch = int(clampval('symm_switch', 1, (settings_file['symm_switch']), steps))
-            if is_json_key_present(settings_file, 'simple_symmetry'):
-                simple_symmetry = (settings_file['simple_symmetry'])
-            if is_json_key_present(settings_file, 'use_jpg'):
-                use_jpg = (settings_file['use_jpg'])
-            if is_json_key_present(settings_file, 'render_mask'):
-                render_mask = (settings_file['render_mask'])
-            if is_json_key_present(settings_file, 'cool_down'):
-                cool_down = (settings_file['cool_down'])
-
+            settings.apply_settings_file(setting_arg, settings_file)
     except Exception as e:
         print('Failed to open or parse ' + setting_arg + ' - Check formatting.')
         print(e)
@@ -851,18 +590,18 @@ for setting_arg in cl_args.settings:
 
 print('')
 
-width_height = [width_height[0] * width_height_scale, width_height[1] * width_height_scale]
+settings.width_height = [settings.width_height[0] * settings.width_height_scale, settings.width_height[1] * settings.width_height_scale]
 
-if symmetry_loss_v or symmetry_loss_h:
-    print(f"Symmetry will end at step {symm_switch}")
+if settings.symmetry_loss_v or settings.symmetry_loss_h:
+    print(f"Symmetry will end at step {settings.symm_switch}")
 
 # Now override some depending on command line and maybe a special case
 if cl_args.output:
-    batch_name = cl_args.output
-    print(f'Setting Output dir to {batch_name}')
+    settings.batch_name = cl_args.output
+    print(f'Setting Output dir to {settings.batch_name}')
 
 if cl_args.ignoreseed:
-    set_seed = 'random_seed'
+    settings.set_seed = 'random_seed'
     print(f'Using a random seed instead of the one provided by the JSON file.')
 
 try:
@@ -871,19 +610,17 @@ except:
     environ_hidemetadata = False
 
 if cl_args.hidemetadata or environ_hidemetadata:
-    add_metadata = False
+    settings.add_metadata = False
     print(f'Hide metadata flag is ON, settings will not be stored in the PNG output.')
 
 letsgobig = False
-gobig_vertical = False
 if cl_args.gobig:
     letsgobig = True
-    gobig_vertical = True
     if cl_args.gobiginit:
-        init_image = cl_args.gobiginit
-        print(f'Using {init_image} to kickstart GO BIG. Initial render will be skipped.')
+        settings.init_image = cl_args.gobiginit
+        print(f'Using {settings.init_image} to kickstart GO BIG. Initial render will be skipped.')
         # check to make sure it is a multiple of 64, otherwise resize it and let the user know.
-        temp_image = Image.open(init_image)
+        temp_image = Image.open(settings.init_image)
         s_width, s_height = temp_image.size
         reside_x = (s_width // 64) * 64
         reside_y = (s_height // 64) * 64
@@ -892,15 +629,15 @@ if cl_args.gobig:
             print('ERROR: Please resize your image.')
             raise Exception("Exiting due to improperly sized go big init.")
         side_x, side_y = temp_image.size
-        width_height[0] = side_x
-        width_height[1] = side_y
+        settings.width_height[0] = side_x
+        settings.width_height[1] = side_y
         temp_image.close
         if cl_args.gobigmask:
-            render_mask = cl_args.gobigmask # might need to do the same checks here as above for init, but for now let's give the user a little credit.
+            settings.render_mask = cl_args.gobigmask # might need to do the same checks here as above for init, but for now let's give the user a little credit.
     else:
         cl_args.gobiginit = None
     if cl_args.gobiginit_scaled != False:
-        gobig_scale = cl_args.gobiginit_scaled
+        settings.gobig_scale = cl_args.gobiginit_scaled
 
 if cl_args.geninit:
     geninit = True
@@ -913,23 +650,23 @@ if cl_args.geninit:
 else:
     geninit = False
 
-if skip_steps == 0 and ((init_image is not None) or (perlin_init == True)):
-    if 0 < skip_steps_ratio <= 1:
-        skip_steps = (int(steps * skip_steps_ratio))
+if settings.skip_steps == 0 and ((settings.init_image is not None) or (settings.perlin_init == True)):
+    if 0 < settings.skip_steps_ratio <= 1:
+        settings.skip_steps = (int(settings.steps * settings.skip_steps_ratio))
     else:
-        skip_steps = (int(steps * 0.33))
+        settings.skip_steps = (int(settings.steps * 0.33))
 
 if cl_args.useinit:
-    if skip_steps == 0:
-        skip_steps = (int(steps * 0.2))  # don't change skip_steps if the settings file specified one
+    if settings.skip_steps == 0:
+        settings.skip_steps = (int(settings.steps * 0.2))  # don't change skip_steps if the settings file specified one
     if path.exists(f'{cl_args.useinit}'):
         useinit = True
-        init_image = cl_args.useinit
-        print(f'UseInit mode is using {cl_args.useinit} and starting at {skip_steps}.')
+        settings.init_image = cl_args.useinit
+        print(f'UseInit mode is using {cl_args.useinit} and starting at {settings.skip_steps}.')
     else:
         init_image = 'geninit.png'
-        if path.exists(init_image):
-            print(f'UseInit mode is using {init_image} and starting at {skip_steps}.')
+        if path.exists(settings.init_image):
+            print(f'UseInit mode is using {settings.init_image} and starting at {settings.skip_steps}.')
             useinit = True
         else:
             print('No init image found. Uneinit mode canceled.')
@@ -938,145 +675,89 @@ else:
     useinit = False
 
 
-def val_interpolate(x1, y1, x2, y2, x):
-    # Linear interpolation. Return y between y1 and y2 for the same position x is bettewen x1 and x2
-    d = [[x1, y1], [x2, y2]]
-    output = d[0][1] + (x - d[0][0]) * ((d[1][1] - d[0][1])/(d[1][0] - d[0][0]))
-    if type(y1) == int:
-        output = int(output)  # return the proper type
-    return(output)
-
-
-def num_to_schedule(input, final=-9999):
-    # take a single number and turn it into a string-style schedule, with support for interpolated
-    if final != -9999:
-        output = (f"[{input}]*1+")
-        for i in range(1, 1000):
-            percent_done = i / 1000
-            val = val_interpolate(1, input, 1000, final, i)
-            output = output + (f"[{val}]*1+")
-        output = output[:-1]  # remove the final plus character
-    else:
-        output = (f'[{input}]*1000')
-    return(output)
-
-
 # Automatic Eta based on steps
-if eta == 'auto':
+if settings.eta == 'auto':
     maxetasteps = 315
     minetasteps = 50
     maxeta = 1.0
     mineta = 0.0
-    if steps > maxetasteps:
+    if settings.steps > maxetasteps:
         eta = maxeta
-    elif steps < minetasteps:
+    elif settings.steps < minetasteps:
         eta = mineta
     else:
         stepsrange = (maxetasteps - minetasteps)
         newrange = (maxeta - mineta)
-        eta = (((steps - minetasteps) * newrange) / stepsrange) + mineta
+        eta = (((settings.steps - minetasteps) * newrange) / stepsrange) + mineta
         eta = round(eta, 2)
         print(f'Eta set automatically to: {eta}')
 
 # Automatic clamp_max based on steps
-if clamp_max == 'auto':
-    if steps <= 35:
-        clamp_max = 0.001
-    elif steps <= 75:
-        clamp_max = 0.0125
-    elif steps <= 150:
-        clamp_max = 0.02
-    elif steps <= 225:
-        clamp_max = 0.035
-    elif steps <= 300:
-        clamp_max = 0.05
-    elif steps <= 500:
-        clamp_max = 0.075
+if settings.clamp_max == 'auto':
+    if settings.steps <= 35:
+        settings.clamp_max = 0.001
+    elif settings.steps <= 75:
+        settings.clamp_max = 0.0125
+    elif settings.steps <= 150:
+        settings.clamp_max = 0.02
+    elif settings.steps <= 225:
+        settings.clamp_max = 0.035
+    elif settings.steps <= 300:
+        settings.clamp_max = 0.05
+    elif settings.steps <= 500:
+        settings.clamp_max = 0.075
     else:
-        clamp_max = 0.1
-    if use_secondary_model == False:
-        clamp_max = clamp_max * 2
-    clamp_max = num_to_schedule(clamp_max)
-    print(f'Clamp_max automatically set to {clamp_max}')
-elif type(clamp_max) != str:
-    clamp_max = num_to_schedule(clamp_max)
-    print(f'Converted clamp_max to schedule, new value is: {clamp_max}')
+        settings.clamp_max = 0.1
+    if settings.use_secondary_model == False:
+        settings.clamp_max = settings.clamp_max * 2
+    settings.clamp_max = num_to_schedule(settings.clamp_max)
+    print(f'Clamp_max automatically set to {settings.clamp_max}')
+elif type(settings.clamp_max) != str:
+    clamp_max = num_to_schedule(settings.clamp_max)
+    print(f'Converted clamp_max to schedule, new value is: {settings.clamp_max}')
 
 # Automatic clip_guidance_scale based on overall resolution
-if clip_guidance_scale == 'auto':
-    res = width_height[0] * width_height[1]  # total pixels
+if settings.clip_guidance_scale == 'auto':
+    res = settings.width_height[0] * settings.width_height[1]  # total pixels
     maxcgsres = 2000000
     mincgsres = 250000
     maxcgs = 50000
     mincgs = 2500
     if res > maxcgsres:
-        clip_guidance_scale = maxcgs
+        settings.clip_guidance_scale = maxcgs
     elif res < mincgsres:
-        clip_guidance_scale = mincgs
+        settings.clip_guidance_scale = mincgs
     else:
         resrange = (maxcgsres - mincgsres)
         newrange = (maxcgs - mincgs)
-        clip_guidance_scale = (((res - mincgsres) * newrange) / resrange) + mincgs
-        clip_guidance_scale = round(clip_guidance_scale)
-    clip_guidance_scale = num_to_schedule(clip_guidance_scale)
+        settings.clip_guidance_scale = (((res - mincgsres) * newrange) / resrange) + mincgs
+        settings.clip_guidance_scale = round(settings.clip_guidance_scale)
+    clip_guidance_scale = num_to_schedule(settings.clip_guidance_scale)
     print(f'clip_guidance_scale set automatically to: {clip_guidance_scale}')
 
-if type(symm_loss_scale) != str:
-    symm_loss_scale = num_to_schedule(symm_loss_scale)
+if type(settings.symmetry_loss_scale) != str:
+    settings.symmetry_loss_scale = settings.num_to_schedule(settings.symmetry_loss_scale)
 
-og_cutn_batches = cutn_batches
-if type(cutn_batches) != str:
-    if cutn_batches_final != None:
-        cutn_batches = num_to_schedule(cutn_batches, cutn_batches_final)
+og_cutn_batches = settings.cutn_batches
+if type(settings.cutn_batches) != str:
+    if settings.cutn_batches_final != None:
+        settings.cutn_batches = num_to_schedule(settings.cutn_batches, settings.cutn_batches_final)
     else:
-        cutn_batches = num_to_schedule(cutn_batches)
+        settings.cutn_batches = num_to_schedule(settings.cutn_batches)
     print(f'Converted cutn_batches to schedule.')
-    logger.debug(f'cutn_batches schedule is: {cutn_batches}')
+    logger.debug(f'cutn_batches schedule is: {settings.cutn_batches}')
 
 if cl_args.prompt:
-    text_prompts["0"] = cl_args.prompt
-    print(f'Setting prompt to {text_prompts}')
+    settings.text_prompts["0"] = cl_args.prompt
+    print(f'Setting prompt to {settings.text_prompts}')
 
 # PROMPT RANDOMIZERS
 # If any word in the prompt starts and ends with _, replace it with a random line from the corresponding text file
 # For example, _artist_ will replace with a line from artist.txt
-
-# Build a list of randomizers to draw from:
-
-
-def randomizer(category):
-    random.seed()
-    randomizers = []
-    with open(f'settings/{category}.txt', encoding="utf-8") as f:
-        for line in f:
-            randomizers.append(line.strip())
-    random_item = random.choice(randomizers)
-    return(random_item)
-
-
-def randomize_prompts(prompts):
-    # take a list of prompts and handle any _random_ elements
-    newprompts = []
-    for prompt in prompts:
-        if "<" in prompt:
-            newprompt = dynamic_value(prompt)
-        else:
-            newprompt = prompt
-        if "_" in newprompt:
-            while "_" in newprompt:
-                start = newprompt.index('_')
-                end = newprompt.index('_', start+1)
-                swap = newprompt[(start + 1):end]
-                swapped = randomizer(swap)
-                newprompt = newprompt.replace(f'_{swap}_', swapped, 1)
-        newprompts.append(newprompt)
-    return newprompts
-
-
-# Ugly, but we need to convert the prompts that we get so that their key values are numbers instead of strings
+# Also, we need to convert the prompts that we get so that their key values are numbers instead of strings
 # plus we need to handle any randomizers, so we do that all here, too.
 converted_prompts = {}
-for k, v in text_prompts.items():
+for k, v in settings.text_prompts.items():
     k = int(k)  # convert the key value to an integer
     if type(v) != list:
         converted_inner_prompts = {}
@@ -1090,25 +771,16 @@ for k, v in text_prompts.items():
     else:
         v = randomize_prompts(v)
         converted_prompts.update({k: v})
-text_prompts = converted_prompts
+settings.text_prompts = converted_prompts
 
 print('\nPrompt(s) with randomizers:')
-for k, v in text_prompts.items():
+for k, v in settings.text_prompts.items():
     print(f'  {k}: {v}')
 print('\n')
-
 
 # INIT IMAGE RANDOMIZER
 # If the setting for init_image is a word between two underscores, we'll pull a random image from that directory,
 # and set our size accordingly.
-
-# randomly pick a file name from a directory:
-def random_file(directory):
-    files = []
-    files = os.listdir(f'{initDirPath}/{directory}')
-    file = random.choice(files)
-    return(file)
-
 
 def get_resampling_mode():
     try:
@@ -1123,23 +795,23 @@ def get_resampling_mode():
 
 
 # Check for init randomizer in settings, and configure a random init if found
-init_image_OriginalPath = init_image
-if init_image != None:
-    if init_image.startswith("_") and init_image.endswith("_"):
-        randominit_dir = (init_image[1:])
+init_image_OriginalPath = settings.init_image
+if settings.init_image != None:
+    if settings.init_image.startswith("_") and settings.init_image.endswith("_"):
+        randominit_dir = (settings.init_image[1:])
         randominit_dir = (randominit_dir[:-1])  # parse out the directory name
         print(f"Randomly picking an init image from {initDirPath}/{randominit_dir}")
-        init_image_OriginalPath = init_image = (f'{initDirPath}/{randominit_dir}/{random_file(randominit_dir)}')
-        print(f"New init image is {init_image}")
+        init_image_OriginalPath = settings.init_image = (f'{initDirPath}/{randominit_dir}/{random_file(randominit_dir)}')
+        print(f"New init image is {settings.init_image}")
         # check to see if the image matches the configured size, if not we'll resize it
-        temp = Image.open(init_image).convert('RGB')
+        temp = Image.open(settings.init_image).convert('RGB')
         temp_width, temp_height = temp.size
-        if (temp_width != width_height[0]) or (temp_height != width_height[1]):
+        if (temp_width != settings.width_height[0]) or (temp_height != settings.width_height[1]):
             print('Randomly chosen init image does not match width and height from settings.')
             print('It will be resized as temp_init.png and used as your init.')
-            temp = temp.resize(width_height, get_resampling_mode())
+            temp = temp.resize(settings.width_height, get_resampling_mode())
             temp.save('temp_init.png')
-            init_image = 'temp_init.png'
+            settings.init_image = 'temp_init.png'
 
 # Decide if we're using CPU or GPU, with appropriate settings depending...
 if cl_args.cpu or not torch.cuda.is_available():
@@ -1164,9 +836,6 @@ else:
         torch.backends.cudnn.enabled = False
 
 print('Pytorch is using device:', device)
-
-# @title 2.2 Define necessary functions
-
 
 def ease(num, t):
     start = num[0]
@@ -1253,22 +922,22 @@ def create_perlin_noise(octaves=[1, 1, 1, 1], width=2, height=2, grayscale=True)
 
     # out = ImageOps.autocontrast(out, preserve_tone=True)
     out = ImageOps.autocontrast(out)
-    if perlin_contrast != 1.0:
+    if settings.perlin_contrast != 1.0:
         out2 = ImageEnhance.Contrast(out)
-        out3 = out2.enhance(perlin_contrast)
+        out3 = out2.enhance(settings.perlin_contrast)
         out = out3
-    if perlin_brightness != 1.0:
+    if settings.perlin_brightness != 1.0:
         out2 = ImageEnhance.Brightness(out)
-        out3 = out2.enhance(perlin_brightness)
+        out3 = out2.enhance(settings.perlin_brightness)
         out = out3
     return out
 
 
 def gen_perlin():
-    if perlin_mode == 'color':
+    if settings.perlin_mode == 'color':
         init = create_perlin_noise([1.5**-i * 0.5 for i in range(12)], 1, 1, False)
         init2 = create_perlin_noise([1.5**-i * 0.5 for i in range(8)], 4, 4, False)
-    elif perlin_mode == 'gray':
+    elif settings.perlin_mode == 'gray':
         init = create_perlin_noise([1.5**-i * 0.5 for i in range(12)], 1, 1, True)
         init2 = create_perlin_noise([1.5**-i * 0.5 for i in range(8)], 4, 4, True)
     else:
@@ -1320,7 +989,7 @@ def symm_loss_h(im, lpm):
 
 stop_on_next_loop = False  # Make sure GPU memory doesn't get corrupted from cancelling the run mid-way through, allow a full frame to complete
 scoreprompt = True
-actual_total_steps = steps
+actual_total_steps = settings.steps
 actual_run_steps = 0
 
 
@@ -1333,19 +1002,15 @@ def do_run(batch_num, slice_num=-1):
         # Inits if not video frames
         if args.animation_mode != "Video Input":
             if args.init_image == '':
-                init_image = None
-            else:
-                init_image = args.init_image
-            init_scale = args.init_scale
-            skip_steps = args.skip_steps
+                args.init_image = None
 
         if args.animation_mode == "2D":
             if args.key_frames:
-                angle = args.angle_series[frame_num]
-                zoom = args.zoom_series[frame_num]
-                translation_x = args.translation_x_series[frame_num]
-                translation_y = args.translation_y_series[frame_num]
-                print(f'angle: {angle}', f'zoom: {zoom}', f'translation_x: {translation_x}', f'translation_y: {translation_y}')
+                args.angle = args.angle_series[frame_num]
+                args.zoom = args.zoom_series[frame_num]
+                args.translation_x = args.translation_x_series[frame_num]
+                args.translation_y = args.translation_y_series[frame_num]
+                print(f'angle: {args.angle}', f'zoom: {args.zoom}', f'translation_x: {args.translation_x}', f'translation_y: {args.translation_y}')
 
             if frame_num > 0:
                 seed = seed + 1
@@ -1354,21 +1019,21 @@ def do_run(batch_num, slice_num=-1):
                 else:
                     img_0 = cv2.imread('prevFrame.png')
                 center = (1 * img_0.shape[1] // 2, 1 * img_0.shape[0] // 2)
-                trans_mat = np.float32([[1, 0, translation_x], [0, 1, translation_y]])
-                rot_mat = cv2.getRotationMatrix2D(center, angle, zoom)
+                trans_mat = np.float32([[1, 0, args.translation_x], [0, 1, args.translation_y]])
+                rot_mat = cv2.getRotationMatrix2D(center, args.angle, args.zoom)
                 trans_mat = np.vstack([trans_mat, [0, 0, 1]])
                 rot_mat = np.vstack([rot_mat, [0, 0, 1]])
                 transformation_matrix = np.matmul(rot_mat, trans_mat)
                 img_0 = cv2.warpPerspective(img_0, transformation_matrix, (img_0.shape[1], img_0.shape[0]), borderMode=cv2.BORDER_WRAP)
                 cv2.imwrite('prevFrameScaled.png', img_0)
-                init_image = 'prevFrameScaled.png'
-                init_scale = args.frames_scale
-                skip_steps = args.calc_frames_skip_steps
+                args.init_image = 'prevFrameScaled.png'
+                args.init_scale = args.frames_scale
+                args.skip_steps = args.calc_frames_skip_steps
 
         if args.animation_mode == "Video Input":
             seed = seed + 1
-            init_image = f'{videoFramesFolder}/{frame_num+1:04}.jpg'
-            init_scale = args.frames_scale
+            args.init_image = f'{videoFramesFolder}/{frame_num+1:04}.jpg'
+            args.init_scale = args.frames_scale
             skip_steps = args.calc_frames_skip_steps
 
         loss_values = []
@@ -1377,16 +1042,13 @@ def do_run(batch_num, slice_num=-1):
             np.random.seed(seed + batch_num)
             random.seed(seed + batch_num)
             torch.manual_seed(seed + batch_num)
-            #torch.use_deterministic_algorithms(True, warn_only=True)
-            # torch.cuda.manual_seed_all(seed)
-            #torch.backends.cudnn.deterministic = True
 
         if args.cool_down >= 1:
             cooling_delay = round((args.cool_down / args.steps),2)
             print(f'Adding {args.cool_down} seconds of cool down time ({cooling_delay} per step)')
         
         # Use next prompt in series when doing a batch run
-        if animation_mode == "None":
+        if args.animation_mode == "None":
             frame_num = batch_num
 
         if frame_num == 0 or batch_num == 0:
@@ -1465,8 +1127,8 @@ def do_run(batch_num, slice_num=-1):
                         step=s,
                         cutn=16,
                         cut_model=MakeCutoutsDango,
-                        side_x=side_x,
-                        side_y=side_y,
+                        side_x=args.side_x,
+                        side_y=args.side_y,
                         fuzzy_prompt=args.fuzzy_prompt,
                         fuzzy_prompt_rand_mag=args.rand_mag,
                         cutout_skip_augs=args.skip_augs
@@ -1479,7 +1141,7 @@ def do_run(batch_num, slice_num=-1):
                         clip_manager.prompt_weights = torch.cat([img_prompt_weights, clip_manager.prompt_weights])
                     else:
                         clip_manager.prompt_weights = img_prompt_weights
-                if not any((sample_prompt, image_prompts)):
+                if not any((sample_prompt, sample_image_prompt)):
                     raise RuntimeError("No prompts provided. You must provide text_prompts and/or image_prompts.")
 
                 if clip_manager.prompt_weights.sum().abs() < 1e-3:
@@ -1488,10 +1150,10 @@ def do_run(batch_num, slice_num=-1):
 
         initial_weights = False
 
-        print(f'Skipping {skip_steps} steps')
+        print(f'Skipping {args.skip_steps} steps')
 
-        if (skip_steps > 0):
-            for i in range(skip_steps, 0, -1):
+        if (args.skip_steps > 0):
+            for i in range(args.skip_steps, 0, -1):
                 if (str(i) in frame_prompt.keys()):
                     do_weights(i, clip_managers)
                     initial_weights = True
@@ -1522,11 +1184,11 @@ def do_run(batch_num, slice_num=-1):
         #render_mask is tells us what part of the render to keep (white) and what part to restore from init_image
         #TODO: consider how this is affected by gobig
         init = None
-        if init_image is not None:
-            init_img = Image.open(fetch(init_image)).convert('RGB')
+        if args.init_image is not None:
+            init_img = Image.open(fetch(args.init_image)).convert('RGB')
             init_img = init_img.resize((args.side_x, args.side_y), get_resampling_mode())
-            if init_masked is not None:
-                init_masked_img = Image.open(fetch(init_masked)).convert('RGB')
+            if args.init_masked is not None:
+                init_masked_img = Image.open(fetch(args.init_masked)).convert('RGB')
                 init = TF.to_tensor(init_masked_img).to(device).unsqueeze(0).mul(2).sub(1)
             else:
                 init = TF.to_tensor(init_img).to(device).unsqueeze(0).mul(2).sub(1)
@@ -1534,18 +1196,17 @@ def do_run(batch_num, slice_num=-1):
 
         rmask = None
         if render_mask is not None:
-            rmask_img = Image.open(fetch(render_mask)).convert('L')
+            rmask_img = Image.open(fetch(args.render_mask)).convert('L')
             rmask_img = rmask_img.resize((args.side_x, args.side_y), get_resampling_mode())
             rmask = TF.to_tensor(rmask_img).to(device).unsqueeze(0)
-            if init_masked is None:
+            if args.init_masked is None:
                 init = gen_perlin()
                 init = TF.to_pil_image(init.clamp(0, 1).squeeze())
                 init_mask = make_masked_init(init, rmask_img).to(device)
                 init_mask = TF.to_pil_image(init_mask.clamp(0, 1).squeeze())
                 init = TF.to_tensor(init_mask).to(device).unsqueeze(0).mul(2).sub(1)
-                #init_mask.save('init_mask.png')
 
-        if (args.perlin_init == True) and (init_image == None):
+        if (args.perlin_init == True) and (args.init_image == None):
             init = gen_perlin()
 
         cur_t = None
@@ -1555,7 +1216,7 @@ def do_run(batch_num, slice_num=-1):
                 x_is_NaN = False
                 x = x.detach().requires_grad_()
                 n = x.shape[0]
-                if use_secondary_model is True:
+                if args.use_secondary_model is True:
                     alpha = torch.tensor(diffusion.sqrt_alphas_cumprod[cur_t], device=device, dtype=torch.float32)
                     sigma = torch.tensor(diffusion.sqrt_one_minus_alphas_cumprod[cur_t], device=device, dtype=torch.float32)
                     cosine_t = alpha_sigma_to_t(alpha, sigma)
@@ -1593,7 +1254,7 @@ def do_run(batch_num, slice_num=-1):
                             x_in_grad += prompt_grad
 
                 tv_losses = tv_loss(x_in)
-                if use_secondary_model is True:
+                if args.use_secondary_model is True:
                     range_losses = range_loss(out)
                 else:
                     range_losses = range_loss(out['pred_xstart'])
@@ -1601,7 +1262,7 @@ def do_run(batch_num, slice_num=-1):
                 logger.debug(f"tv_loss: {tv_losses.sum()}")
                 logger.debug(f"range_loss: {range_losses.sum()}")
                 logger.debug(f"sat_loss: {sat_losses.sum()}")
-                loss = tv_losses.sum() * tv_scale + range_losses.sum() * range_scale + sat_losses.sum() * sat_scale
+                loss = tv_losses.sum() * args.tv_scale + range_losses.sum() * args.range_scale + sat_losses.sum() * args.sat_scale
                 if init is not None and args.init_scale:
                     init_losses = lpips_model(x_in, init)
                     loss = loss + init_losses.sum() * args.init_scale
@@ -1629,21 +1290,21 @@ def do_run(batch_num, slice_num=-1):
         else:
             sample_fn = diffusion.plms_sample_loop_progressive
 
-        progressBar = tqdm(range(steps), initial=args.skip_steps)
+        progressBar = tqdm(range(args.steps), initial=args.skip_steps)
         starting_init = init
         # the actual image gen
         gc.collect()
         if "cuda" in str(device):
             with torch.cuda.device(device):
                 torch.cuda.empty_cache()
-        cur_t = diffusion.num_timesteps - skip_steps - 1
+        cur_t = diffusion.num_timesteps - args.skip_steps - 1
         global actual_total_steps
         global actual_run_steps
-        actual_run_steps = skip_steps
+        actual_run_steps = args.skip_steps
         total_steps = cur_t
         logger.debug(f'cur_t at start of image is {cur_t} and diffusion.num_timesteps is {diffusion.num_timesteps}')
 
-        if (args.perlin_init == True) and (init_image == None):
+        if (args.perlin_init == True) and (args.init_image == None):
             init = gen_perlin()
         else:
             init = starting_init  # make sure we return to a baseline for each image in a batch
@@ -1659,7 +1320,7 @@ def do_run(batch_num, slice_num=-1):
                     progress=False,
                     skip_timesteps=_skip,
                     init_image=init,
-                    randomize_class=randomize_class,
+                    randomize_class=args.randomize_class,
                     eta=eta,
                 )
             else:
@@ -1672,7 +1333,7 @@ def do_run(batch_num, slice_num=-1):
                     progress=False,
                     skip_timesteps=_skip,
                     init_image=init,
-                    randomize_class=randomize_class,
+                    randomize_class=args.randomize_class,
                     order=2,
                 )
 
@@ -2701,8 +2362,8 @@ if retain_overwritten_frames is True:
     retainFolder = f'{batchFolder}/retained'
     createPath(retainFolder)
 
-skip_step_ratio = int(frames_skip_steps.rstrip("%")) / 100
-calc_frames_skip_steps = math.floor(steps * skip_step_ratio)
+skip_step_ratio = int(settings.frames_skip_steps.rstrip("%")) / 100
+calc_frames_skip_steps = math.floor(settings.steps * skip_step_ratio)
 
 if steps <= calc_frames_skip_steps:
     sys.exit("ERROR: You can't skip more steps than your total steps")
@@ -2747,23 +2408,23 @@ else:
 
 print(f'\nStarting Run: {batch_name}({batchNum}) at frame {start_frame}')
 
-if set_seed == 'random_seed':
+if settings.set_seed == 'random_seed':
     random.seed()
     seed = random.randint(0, 2**32)
     # print(f'Using seed: {seed}')
 else:
-    seed = int(set_seed)
+    seed = int(settings.set_seed)
 
 # convert old number-style settings to new scheduled settings
-og_cut_ic_pow = cut_ic_pow
-if type(cut_ic_pow) != str:
-    if type(cut_ic_pow_final) != type(None):
-        cut_ic_pow = num_to_schedule(cut_ic_pow, cut_ic_pow_final)
+og_cut_ic_pow = settings.cut_ic_pow
+if type(settings.cut_ic_pow) != str:
+    if type(settings.cut_ic_pow_final) != type(None):
+        settings.cut_ic_pow = num_to_schedule(settings.cut_ic_pow, settings.cut_ic_pow_final)
     else:
-        cut_ic_pow = num_to_schedule(cut_ic_pow)
+        settings.cut_ic_pow = num_to_schedule(settings.cut_ic_pow)
 
-if type(clip_guidance_scale) != str:
-    clip_guidance_scale = num_to_schedule(clip_guidance_scale)
+if type(settings.clip_guidance_scale) != str:
+    settings.clip_guidance_scale = num_to_schedule(settings.clip_guidance_scale)
 
 print(f'Using seed {seed}')
 
@@ -2771,87 +2432,87 @@ print(f'Using seed {seed}')
 # Leave this section alone, it takes all our settings and puts them in one variable dictionary
 args = {
     'batchNum': batchNum,
-    'prompts_series': split_prompts(text_prompts) if text_prompts else None,
+    'prompts_series': split_prompts(settings.text_prompts) if settings.text_prompts else None,
     'image_prompts_series':
-    split_prompts(image_prompts) if image_prompts else None,
+    split_prompts(settings.image_prompts) if settings.image_prompts else None,
     'seed': seed,
-    'display_rate': display_rate,
-    'n_batches': n_batches if animation_mode == 'None' else 1,
-    'batch_size': batch_size,
-    'batch_name': batch_name,
-    'steps': steps,
-    'sampling_mode': sampling_mode,
-    'width_height': width_height,
-    'clip_guidance_scale': eval(clip_guidance_scale),
-    'tv_scale': tv_scale,
-    'range_scale': range_scale,
-    'sat_scale': sat_scale,
-    'cutn_batches': eval(cutn_batches),
-    'init_image': init_image,
-    'init_scale': init_scale,
-    'skip_steps': skip_steps,
-    'sharpen_preset': sharpen_preset,
-    'keep_unsharp': keep_unsharp,
-    'side_x': side_x,
-    'side_y': side_y,
-    'timestep_respacing': timestep_respacing,
-    'diffusion_steps': diffusion_steps,
-    'animation_mode': animation_mode,
-    'video_init_path': video_init_path,
-    'extract_nth_frame': extract_nth_frame,
-    'key_frames': key_frames,
-    'max_frames': max_frames if animation_mode != "None" else 1,
-    'interp_spline': interp_spline,
-    'start_frame': start_frame,
-    'angle': angle,
-    'zoom': zoom,
-    'translation_x': translation_x,
-    'translation_y': translation_y,
-    'angle_series': angle_series,
-    'zoom_series': zoom_series,
-    'translation_x_series': translation_x_series,
-    'translation_y_series': translation_y_series,
-    'frames_scale': frames_scale,
+    'display_rate': settings.display_rate,
+    'n_batches': settings.n_batches if settings.animation_mode == 'None' else 1,
+    'batch_size': settings.batch_size,
+    'batch_name': settings.batch_name,
+    'steps': settings.steps,
+    'sampling_mode': settings.sampling_mode,
+    'width_height': settings.width_height,
+    'clip_guidance_scale': eval(settings.clip_guidance_scale),
+    'tv_scale': settings.tv_scale,
+    'range_scale': settings.range_scale,
+    'sat_scale': settings.sat_scale,
+    'cutn_batches': eval(settings.cutn_batches),
+    'init_image': settings.init_image,
+    'init_scale': settings.init_scale,
+    'skip_steps': settings.skip_steps,
+    'sharpen_preset': settings.sharpen_preset,
+    'keep_unsharp': settings.keep_unsharp,
+    'side_x': settings.side_x,
+    'side_y': settings.side_y,
+    'timestep_respacing': settings.timestep_respacing,
+    'diffusion_steps': settings.diffusion_steps,
+    'animation_mode': settings.animation_mode,
+    'video_init_path': settings.video_init_path,
+    'extract_nth_frame': settings.extract_nth_frame,
+    'key_frames': settings.key_frames,
+    'max_frames': settings.max_frames if settings.animation_mode != "None" else 1,
+    'interp_spline': settings.interp_spline,
+    'start_frame': settings.start_frame,
+    'angle': settings.angle,
+    'zoom': settings.zoom,
+    'translation_x': settings.translation_x,
+    'translation_y': settings.translation_y,
+    'angle_series': settings.angle_series,
+    'zoom_series': settings.zoom_series,
+    'translation_x_series': settings.translation_x_series,
+    'translation_y_series': settings.translation_y_series,
+    'frames_scale': settings.frames_scale,
     'calc_frames_skip_steps': calc_frames_skip_steps,
     'skip_step_ratio': skip_step_ratio,
     'calc_frames_skip_steps': calc_frames_skip_steps,
-    'text_prompts': text_prompts,
-    'image_prompts': image_prompts,
-    'cut_overview': eval(cut_overview),
-    'cut_innercut': eval(cut_innercut),
-    'cut_ic_pow': eval(cut_ic_pow),
-    'cut_ic_pow_final': cut_ic_pow_final,
-    'cut_icgray_p': eval(cut_icgray_p),
-    'intermediate_saves': intermediate_saves,
-    'intermediates_in_subfolder': intermediates_in_subfolder,
-    'perlin_init': perlin_init,
-    'perlin_mode': perlin_mode,
-    'set_seed': set_seed,
-    'eta': eta,
-    'clamp_grad': clamp_grad,
-    'clamp_max': eval(clamp_max),
-    'skip_augs': skip_augs,
-    'randomize_class': randomize_class,
-    'clip_denoised': clip_denoised,
-    'fuzzy_prompt': fuzzy_prompt,
-    'rand_mag': rand_mag,
-    'stop_early': stop_early,
-    'symmetry_loss_v': symmetry_loss_v,
-    'symmetry_loss_h': symmetry_loss_h,
-    'symm_loss_scale': eval(symm_loss_scale),
-    'symm_switch': symm_switch,
-    'simple_symmetry': simple_symmetry,
-    'smooth_schedules': smooth_schedules,
-    'render_mask': render_mask,
-    'perlin_brightness': perlin_brightness,
-    'perlin_contrast': perlin_contrast,
-    'cool_down': cool_down
+    'text_prompts': settings.text_prompts,
+    'image_prompts': settings.image_prompts,
+    'cut_overview': eval(settings.cut_overview),
+    'cut_innercut': eval(settings.cut_innercut),
+    'cut_ic_pow': eval(settings.cut_ic_pow),
+    'cut_ic_pow_final': settings.cut_ic_pow_final,
+    'cut_icgray_p': eval(settings.cut_icgray_p),
+    'intermediate_saves': settings.intermediate_saves,
+    'intermediates_in_subfolder': settings.intermediates_in_subfolder,
+    'perlin_init': settings.perlin_init,
+    'perlin_mode': settings.perlin_mode,
+    'set_seed': settings.set_seed,
+    'eta': settings.eta,
+    'clamp_grad': settings.clamp_grad,
+    'clamp_max': eval(settings.clamp_max),
+    'skip_augs': settings.skip_augs,
+    'randomize_class': settings.randomize_class,
+    'clip_denoised': settings.clip_denoised,
+    'fuzzy_prompt': settings.fuzzy_prompt,
+    'rand_mag': settings.rand_mag,
+    'stop_early': settings.stop_early,
+    'symmetry_loss_v': settings.symmetry_loss_v,
+    'symmetry_loss_h': settings.symmetry_loss_h,
+    'symm_loss_scale': eval(settings.symm_loss_scale),
+    'symm_switch': settings.symm_switch,
+    'simple_symmetry': settings.simple_symmetry,
+    'smooth_schedules': settings.smooth_schedules,
+    'render_mask': settings.render_mask,
+    'perlin_brightness': settings.perlin_brightness,
+    'perlin_contrast': settings.perlin_contrast,
+    'cool_down': settings.cool_down
 }
 
 args = SimpleNamespace(**args)
 
 # Smooth out them tasty schedules if the user wills it so...
-if smooth_schedules == True:
+if settings.smooth_schedules == True:
     args.cutn_batches = smooth_jazz(args.cutn_batches)
     args.cut_overview = smooth_jazz(args.cut_overview)
     args.cut_innercut = smooth_jazz(args.cut_innercut)
