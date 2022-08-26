@@ -15,7 +15,7 @@ def fetch(url_or_path):
         return fd
     return open(url_or_path, 'rb')
 
-# Simple create paths taken with modifications from Datamosh's Batch VQGAN+CLIP notebook
+# Simple create path
 def createPath(filepath):
     if path.exists(filepath) == False:
         os.makedirs(filepath)

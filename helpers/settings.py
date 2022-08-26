@@ -71,37 +71,14 @@ class Settings:
     cut_icgray_p = "[0.2]*400+[0]*600"
     cut_heatmaps = False
     smooth_schedules = False
-    key_frames = True
-    angle = "0:(0)"
-    zoom = "0: (1), 10: (1.05)"
-    translation_x = "0: (0)"
-    translation_y = "0: (0)"
-    video_init_path = "/content/training.mp4"
-    extract_nth_frame = 2
     intermediate_saves = 0
     add_metadata = True
     stop_early = 0
     fix_brightness_contrast = True
     adjustment_interval = 10
-    high_contrast_threshold = 80
-    high_contrast_adjust_amount = 0.85
-    high_contrast_start = 20
-    high_contrast_adjust = True
-    low_contrast_threshold = 20
-    low_contrast_adjust_amount = 2
-    low_contrast_start = 20
-    low_contrast_adjust = True
-    high_brightness_threshold = 180
-    high_brightness_adjust_amount = 0.85
-    high_brightness_start = 0
-    high_brightness_adjust = True
-    low_brightness_threshold = 40
-    low_brightness_adjust_amount = 1.15
-    low_brightness_start = 0
-    low_brightness_adjust = True
     sharpen_preset = 'Off'  # @param ['Off', 'Faster', 'Fast', 'Slow', 'Very Slow']
     keep_unsharp = False  # @param{type: 'boolean'}
-    animation_mode = "None"  # "Video Input", "2D"
+    animation_mode = "None" 
     gobig_orientation = "vertical"
     gobig_scale = 2
     gobig_skip_ratio = 0.6
@@ -282,58 +259,12 @@ class Settings:
             self.cut_heatmaps = (settings_file['cut_heatmaps'])
         if is_json_key_present(settings_file, 'smooth_schedules'):
             self.smooth_schedules = (settings_file['smooth_schedules'])
-        if is_json_key_present(settings_file, 'key_frames'):
-            self.key_frames = (settings_file['key_frames'])
-        if is_json_key_present(settings_file, 'angle'):
-            self.angle = (settings_file['angle'])
-        if is_json_key_present(settings_file, 'zoom'):
-            self.zoom = (settings_file['zoom'])
-        if is_json_key_present(settings_file, 'translation_x'):
-            self.translation_x = (settings_file['translation_x'])
-        if is_json_key_present(settings_file, 'translation_y'):
-            self.translation_y = (settings_file['translation_y'])
-        if is_json_key_present(settings_file, 'video_init_path'):
-            self.video_init_path = (settings_file['video_init_path'])
-        if is_json_key_present(settings_file, 'extract_nth_frame'):
-            self.extract_nth_frame = (settings_file['extract_nth_frame'])
         if is_json_key_present(settings_file, 'intermediate_saves'):
             self.intermediate_saves = (settings_file['intermediate_saves'])
         if is_json_key_present(settings_file, 'fix_brightness_contrast'):
             self.fix_brightness_contrast = (settings_file['fix_brightness_contrast'])
         if is_json_key_present(settings_file, 'adjustment_interval'):
             self.adjustment_interval = (settings_file['adjustment_interval'])
-        if is_json_key_present(settings_file, 'high_contrast_threshold'):
-            self.high_contrast_threshold = (settings_file['high_contrast_threshold'])
-        if is_json_key_present(settings_file, 'high_contrast_adjust_amount'):
-            self.high_contrast_adjust_amount = (settings_file['high_contrast_adjust_amount'])
-        if is_json_key_present(settings_file, 'high_contrast_start'):
-            self.high_contrast_start = (settings_file['high_contrast_start'])
-        if is_json_key_present(settings_file, 'high_contrast_adjust'):
-            self.high_contrast_adjust = (settings_file['high_contrast_adjust'])
-        if is_json_key_present(settings_file, 'low_contrast_threshold'):
-            self.low_contrast_threshold = (settings_file['low_contrast_threshold'])
-        if is_json_key_present(settings_file, 'low_contrast_adjust_amount'):
-            self.low_contrast_adjust_amount = (settings_file['low_contrast_adjust_amount'])
-        if is_json_key_present(settings_file, 'low_contrast_start'):
-            self.low_contrast_start = (settings_file['low_contrast_start'])
-        if is_json_key_present(settings_file, 'low_contrast_adjust'):
-            self.low_contrast_adjust = (settings_file['low_contrast_adjust'])
-        if is_json_key_present(settings_file, 'high_brightness_threshold'):
-            self.high_brightness_threshold = (settings_file['high_brightness_threshold'])
-        if is_json_key_present(settings_file, 'high_brightness_adjust_amount'):
-            self.high_brightness_adjust_amount = (settings_file['high_brightness_adjust_amount'])
-        if is_json_key_present(settings_file, 'high_brightness_start'):
-            self.high_brightness_start = (settings_file['high_brightness_start'])
-        if is_json_key_present(settings_file, 'high_brightness_adjust'):
-            self.high_brightness_adjust = (settings_file['high_brightness_adjust'])
-        if is_json_key_present(settings_file, 'low_brightness_threshold'):
-            self.low_brightness_threshold = (settings_file['low_brightness_threshold'])
-        if is_json_key_present(settings_file, 'low_brightness_adjust_amount'):
-            self.low_brightness_adjust_amount = (settings_file['low_brightness_adjust_amount'])
-        if is_json_key_present(settings_file, 'low_brightness_start'):
-            self.low_brightness_start = (settings_file['low_brightness_start'])
-        if is_json_key_present(settings_file, 'low_brightness_adjust'):
-            self.low_brightness_adjust = (settings_file['low_brightness_adjust'])
         if is_json_key_present(settings_file, 'sharpen_preset'):
             self.sharpen_preset = (settings_file['sharpen_preset'])
         if is_json_key_present(settings_file, 'keep_unsharp'):
@@ -447,32 +378,9 @@ class Settings:
             'cut_heatmaps': self.cut_heatmaps,
             'smooth_schedules': self.smooth_schedules,
             'animation_mode': self.animation_mode,
-            'key_frames': self.key_frames,
-            'angle': self.angle,
-            'zoom': self.zoom,
-            'translation_x': self.translation_x,
-            'translation_y': self.translation_y,
-            'video_init_path': self.video_init_path,
-            'extract_nth_frame': self.extract_nth_frame,
             'stop_early': self.stop_early,
             'fix_brightness_contrast': self.fix_brightness_contrast,
             'adjustment_interval': self.adjustment_interval,
-            'high_contrast_threshold': self.high_contrast_threshold,
-            'high_contrast_adjust_amount': self.high_contrast_adjust_amount,
-            'high_contrast_start': self.high_contrast_start,
-            'high_contrast_adjust': self.high_contrast_adjust,
-            'low_contrast_threshold': self.low_contrast_threshold,
-            'low_contrast_adjust_amount': self.low_contrast_adjust_amount,
-            'low_contrast_start': self.low_contrast_start,
-            'low_contrast_adjust': self.low_contrast_adjust,
-            'high_brightness_threshold': self.high_brightness_threshold,
-            'high_brightness_adjust_amount': self.high_brightness_adjust_amount,
-            'high_brightness_start': self.high_brightness_start,
-            'high_brightness_adjust': self.high_brightness_adjust,
-            'low_brightness_threshold': self.low_brightness_threshold,
-            'low_brightness_adjust_amount': self.low_brightness_adjust_amount,
-            'low_brightness_start': self.low_brightness_start,
-            'low_brightness_adjust': self.low_brightness_adjust,
             'sharpen_preset': self.sharpen_preset,
             'keep_unsharp': self.keep_unsharp,
             'gobig_scale': self.gobig_scale,
@@ -480,7 +388,7 @@ class Settings:
             'gobig_overlap': self.gobig_overlap,
             'symmetry_loss_v': self.symmetry_loss_v,
             'symmetry_loss_h': self.symmetry_loss_h,
-            'symm_loss_scale': eval(self.symm_loss_scale),
+            'symm_loss_scale': self.symm_loss_scale,
             'symm_switch': self.symm_switch,
             'simple_symmetry': self.simple_symmetry,
             'perlin_brightness': self.perlin_brightness,

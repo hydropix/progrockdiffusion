@@ -62,6 +62,7 @@ sys.path.append(f'{root_path}/open_clip/src')  # noqa: E402
 
 from cut_modules.make_cutouts import MakeCutoutsDango, MakeCutouts
 import helpers.settings
+from helpers.settings import *
 from helpers.utils import fetch
 from helpers.utils import createPath
 from os.path import exists
@@ -141,119 +142,6 @@ if sys.platform == 'win32':
 
 # Setting default values for everything, which can then be overridden by settings files.
 settings = Settings()
-# batch_name = "Default"
-# clip_guidance_scale = "auto"
-# tv_scale = 0
-# range_scale = 150
-# sat_scale = 0
-# n_batches = 1
-# display_rate = 20
-# cutn_batches = 4
-# cutn_batches_final = None
-# max_frames = 10000
-# interp_spline = "Linear"
-# init_image = None
-# init_masked = None
-# init_scale = 1000
-# skip_steps = 0
-# skip_steps_ratio = 0.0
-# frames_scale = 1500
-# frames_skip_steps = "60%"
-# perlin_init = False
-# perlin_mode = "mixed"
-# perlin_contrast = 1.0
-# perlin_brightness = 1.0
-# skip_augs = False
-# randomize_class = True
-# clip_denoised = False
-# clamp_grad = True
-# clamp_max = "auto"
-# set_seed = "random_seed"
-# fuzzy_prompt = False
-# rand_mag = 0.05
-# eta = "auto"
-# width_height = [832, 512]
-# width_height_scale = 1
-# diffusion_model = "512x512_diffusion_uncond_finetune_008100"
-# use_secondary_model = True
-# steps = 250
-# sampling_mode = "ddim"
-# diffusion_steps = 1000
-# ViTB32 = 1.0
-# ViTB16 = 0.0
-# ViTL14 = 0.0
-# ViTL14_336 = 0.0
-# RN101 = 0.0
-# RN50 = 0.0
-# RN50x4 = 0.0
-# RN50x16 = 0.0
-# RN50x64 = 0.0
-# ViTB32_laion2b_e16 = 1.0
-# ViTB32_laion400m_e31 = 0.0
-# ViTB32_laion400m_32 = 0.0
-# ViTB32quickgelu_laion400m_e31 = 0.0
-# ViTB32quickgelu_laion400m_e32 = 0.0
-# ViTB16_laion400m_e31 = 0.0
-# ViTB16_laion400m_e32 = 0.0
-# RN50_yffcc15m = 0.0
-# RN50_cc12m = 0.0
-# RN50_quickgelu_yfcc15m = 0.0
-# RN50_quickgelu_cc12m = 0.0
-# RN101_yfcc15m = 0.0
-# RN101_quickgelu_yfcc15m = 0.0
-# cut_overview = "[12]*400+[4]*600"
-# cut_innercut = "[4]*400+[12]*600"
-# cut_ic_pow = "[1]*500+[10]*500"
-# cut_ic_pow_final = None
-# cut_icgray_p = "[0.2]*400+[0]*600"
-# cut_heatmaps = False
-# smooth_schedules = False
-# key_frames = True
-# angle = "0:(0)"
-# zoom = "0: (1), 10: (1.05)"
-# translation_x = "0: (0)"
-# translation_y = "0: (0)"
-# video_init_path = "/content/training.mp4"
-# extract_nth_frame = 2
-# intermediate_saves = [0]
-# add_metadata = True
-# stop_early = 0
-# fix_brightness_contrast = True
-# adjustment_interval = 10
-# high_contrast_threshold = 80
-# high_contrast_adjust_amount = 0.85
-# high_contrast_start = 20
-# high_contrast_adjust = True
-# low_contrast_threshold = 20
-# low_contrast_adjust_amount = 2
-# low_contrast_start = 20
-# low_contrast_adjust = True
-# high_brightness_threshold = 180
-# high_brightness_adjust_amount = 0.85
-# high_brightness_start = 0
-# high_brightness_adjust = True
-# low_brightness_threshold = 40
-# low_brightness_adjust_amount = 1.15
-# low_brightness_start = 0
-# low_brightness_adjust = True
-# sharpen_preset = 'Off'  # @param ['Off', 'Faster', 'Fast', 'Slow', 'Very Slow']
-# keep_unsharp = False  # @param{type: 'boolean'}
-# animation_mode = "None"  # "Video Input", "2D"
-# gobig_scale = 2
-# gobig_skip_ratio = 0.6
-# gobig_overlap = 64
-# gobig_maximize = False
-# symmetry_loss_v = False
-# symmetry_loss_h = False
-# symm_loss_scale = "[2500]*1000"
-# symm_switch = 45
-# simple_symmetry = [0]
-# use_jpg = False
-# render_mask = None
-# cool_down = 0
-
-# Command Line parse
-
 
 def parse_args():
     example_text = f'''Usage examples:
@@ -735,8 +623,8 @@ if settings.clip_guidance_scale == 'auto':
     clip_guidance_scale = num_to_schedule(settings.clip_guidance_scale)
     print(f'clip_guidance_scale set automatically to: {clip_guidance_scale}')
 
-if type(settings.symmetry_loss_scale) != str:
-    settings.symmetry_loss_scale = settings.num_to_schedule(settings.symmetry_loss_scale)
+if type(settings.symm_loss_scale) != str:
+    settings.symm_loss_scale = settings.num_to_schedule(settings.symm_loss_scale)
 
 og_cutn_batches = settings.cutn_batches
 if type(settings.cutn_batches) != str:
@@ -994,6 +882,18 @@ actual_run_steps = 0
 
 def do_run(batch_num, slice_num=-1):
     seed = args.seed
+
+    def save_settings():
+        setting_list = settings.save_settings({
+            "seed": seed, 
+            "diffusion_model_name": diffusion_model.name, 
+            "og_cut_ic_pow": og_cut_ic_pow,
+            "batchFolder": batchFolder,
+            "batchNum": batchNum
+            })
+        with open(f"{batchFolder}/{args.batch_name}_{batchNum}_settings.json",  "w+", encoding="utf-8") as f:  # save settings
+            json.dump(setting_list, f, ensure_ascii=False, indent=4)
+
     for frame_num in range(args.start_frame, args.max_frames):
         if stop_on_next_loop:
             break
@@ -1157,7 +1057,7 @@ def do_run(batch_num, slice_num=-1):
             init_img = init_img.convert('RGBA') # now that we've made our init, we add an alpha channel for later compositing
 
         rmask = None
-        if render_mask is not None:
+        if args.render_mask is not None:
             rmask_img = Image.open(fetch(args.render_mask)).convert('L')
             rmask_img = rmask_img.resize((args.side_x, args.side_y), get_resampling_mode())
             rmask = TF.to_tensor(rmask_img).to(device).unsqueeze(0)
@@ -1276,7 +1176,7 @@ def do_run(batch_num, slice_num=-1):
                 samples = sample_fn(
                     model,
                     (batch_size, 3, args.side_y, args.side_x),
-                    clip_denoised=clip_denoised,
+                    clip_denoised=args.clip_denoised,
                     model_kwargs={},
                     cond_fn=cond_fn,
                     progress=False,
@@ -1289,7 +1189,7 @@ def do_run(batch_num, slice_num=-1):
                 samples = sample_fn(
                     model,
                     (batch_size, 3, args.side_y, args.side_x),
-                    clip_denoised=clip_denoised,
+                    clip_denoised=args.clip_denoised,
                     model_kwargs={},
                     cond_fn=cond_fn,
                     progress=False,
@@ -1351,8 +1251,8 @@ def do_run(batch_num, slice_num=-1):
                             metadata.add_text("seed", str(seed))
                             metadata.add_text("steps", str(settings.steps))
                             metadata.add_text("init_image", str(init_image_OriginalPath))
-                            metadata.add_text("skip_steps", str(skip_steps))
-                            metadata.add_text("clip_guidance_scale", str(clip_guidance_scale))
+                            metadata.add_text("skip_steps", str(settings.skip_steps))
+                            metadata.add_text("clip_guidance_scale", str(settings.clip_guidance_scale))
                             metadata.add_text("tv_scale", str(settings.tv_scale))
                             metadata.add_text("range_scale", str(settings.range_scale))
                             metadata.add_text("sat_scale", str(settings.sat_scale))
@@ -1484,12 +1384,6 @@ def do_run(batch_num, slice_num=-1):
                 if (cur_t == -1):
                     break
         progressBar.close()            
-
-
-def save_settings():
-    setting_list = settings.save_settings()
-    with open(f"{batchFolder}/{batch_name}_{batchNum}_settings.json",  "w+", encoding="utf-8") as f:  # save settings
-        json.dump(setting_list, f, ensure_ascii=False, indent=4)
 
 
 # @title 2.3 Define the secondary diffusion model
@@ -1887,17 +1781,17 @@ model_load_name_map = {
 clip_managers = [
     ClipManager(
         name=model_name,
-        cut_count_multiplier=eval(model_name),
+        cut_count_multiplier=getattr(settings, model_name),
         download_root=model_path_clip,
         device=device,
         use_cut_heatmap=settings.cut_heatmaps,
         pad_inner_cuts=True
     )
-    for model_name in CLIP_NAME_MAP.keys() if eval(model_name)
+    for model_name in CLIP_NAME_MAP.keys() if getattr(settings, model_name)
 ]
 
-clip_modelname = [model_name for model_name in model_load_name_map.keys() if eval(model_name) > 0.0]
-clip_model_weights = [eval(model_name) for model_name in model_load_name_map.keys() if eval(model_name) > 0.0]
+clip_modelname = [model_name for model_name in model_load_name_map.keys() if getattr(settings, model_name) > 0.0]
+clip_model_weights = [getattr(settings, model_name) for model_name in model_load_name_map.keys() if getattr(settings, model_name) > 0.0]
 
 # Get corrected sizes
 side_x = (settings.width_height[0] // 64) * 64
@@ -2097,7 +1991,7 @@ args = {
     'seed': settings.seed,
     'display_rate': settings.display_rate,
     'n_batches': settings.n_batches if settings.animation_mode == 'None' else 1,
-    'batch_size': settings.batch_size,
+    'batch_size': batch_size,
     'batch_name': settings.batch_name,
     'steps': settings.steps,
     'sampling_mode': settings.sampling_mode,
@@ -2112,29 +2006,14 @@ args = {
     'skip_steps': settings.skip_steps,
     'sharpen_preset': settings.sharpen_preset,
     'keep_unsharp': settings.keep_unsharp,
-    'side_x': settings.side_x,
-    'side_y': settings.side_y,
-    'timestep_respacing': settings.timestep_respacing,
+    'side_x': side_x,
+    'side_y': side_y,
+    'timestep_respacing': timestep_respacing,
     'diffusion_steps': settings.diffusion_steps,
-    'animation_mode': settings.animation_mode,
-    'video_init_path': settings.video_init_path,
-    'extract_nth_frame': settings.extract_nth_frame,
-    'key_frames': settings.key_frames,
-    'max_frames': settings.max_frames if settings.animation_mode != "None" else 1,
+    'animation_mode': 'None',
     'interp_spline': settings.interp_spline,
-    'start_frame': settings.start_frame,
-    'angle': settings.angle,
-    'zoom': settings.zoom,
-    'translation_x': settings.translation_x,
-    'translation_y': settings.translation_y,
-    'angle_series': settings.angle_series,
-    'zoom_series': settings.zoom_series,
-    'translation_x_series': settings.translation_x_series,
-    'translation_y_series': settings.translation_y_series,
-    'frames_scale': settings.frames_scale,
-    'calc_frames_skip_steps': calc_frames_skip_steps,
-    'skip_step_ratio': skip_step_ratio,
-    'calc_frames_skip_steps': calc_frames_skip_steps,
+    'start_frame': start_frame,
+    'max_frames': settings.max_frames,
     'text_prompts': settings.text_prompts,
     'image_prompts': settings.image_prompts,
     'cut_overview': eval(settings.cut_overview),
@@ -2143,7 +2022,7 @@ args = {
     'cut_ic_pow_final': settings.cut_ic_pow_final,
     'cut_icgray_p': eval(settings.cut_icgray_p),
     'intermediate_saves': settings.intermediate_saves,
-    'intermediates_in_subfolder': settings.intermediates_in_subfolder,
+    'intermediates_in_subfolder': intermediates_in_subfolder,
     'perlin_init': settings.perlin_init,
     'perlin_mode': settings.perlin_mode,
     'set_seed': settings.set_seed,
@@ -2165,7 +2044,28 @@ args = {
     'render_mask': settings.render_mask,
     'perlin_brightness': settings.perlin_brightness,
     'perlin_contrast': settings.perlin_contrast,
-    'cool_down': settings.cool_down
+    'cool_down': settings.cool_down,
+    'use_secondary_model': settings.use_secondary_model,
+    'fix_brightness_contrast': settings.fix_brightness_contrast,
+    'adjustment_interval': settings.adjustment_interval,
+    'high_contrast_threshold' : 80,
+    'high_contrast_adjust_amount' : 0.85,
+    'high_contrast_start' : 20,
+    'high_contrast_adjust' : True,
+    'low_contrast_threshold' : 20,
+    'low_contrast_adjust_amount' : 2,
+    'low_contrast_start' : 20,
+    'low_contrast_adjust' : True,
+    'high_brightness_threshold' : 180,
+    'high_brightness_adjust_amount' : 0.85,
+    'high_brightness_start' : 0,
+    'high_brightness_adjust' : True,
+    'low_brightness_threshold' : 40,
+    'low_brightness_adjust_amount' : 1.15,
+    'low_brightness_start' : 0,
+    'low_brightness_adjust' : True,
+    'add_metadata': settings.add_metadata,
+    'use_jpg': settings.use_jpg
 }
 
 args = SimpleNamespace(**args)
