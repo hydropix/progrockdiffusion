@@ -487,10 +487,7 @@ class Settings:
             'perlin_contrast': self.perlin_contrast,
             'use_jpg': self.use_jpg
         }
-        batchFolder = extra_settings["batchFolder"]
-        batchNum = extra_settings["batchNum"]
-        with open(f"{batchFolder}/{self.batch_name}_{batchNum}_settings.json",  "w+", encoding="utf-8") as f:  # save settings
-            json.dump(setting_list, f, ensure_ascii=False, indent=4)
+        return setting_list
 
 # Simple check to see if a key is present in the settings file
 def is_json_key_present(json, key, subkey="none"):

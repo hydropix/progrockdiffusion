@@ -781,7 +781,6 @@ print('\n')
 # INIT IMAGE RANDOMIZER
 # If the setting for init_image is a word between two underscores, we'll pull a random image from that directory,
 # and set our size accordingly.
-
 def get_resampling_mode():
     try:
         from PIL import __version__, Image
@@ -998,43 +997,6 @@ def do_run(batch_num, slice_num=-1):
     for frame_num in range(args.start_frame, args.max_frames):
         if stop_on_next_loop:
             break
-
-        # Inits if not video frames
-        if args.animation_mode != "Video Input":
-            if args.init_image == '':
-                args.init_image = None
-
-        if args.animation_mode == "2D":
-            if args.key_frames:
-                args.angle = args.angle_series[frame_num]
-                args.zoom = args.zoom_series[frame_num]
-                args.translation_x = args.translation_x_series[frame_num]
-                args.translation_y = args.translation_y_series[frame_num]
-                print(f'angle: {args.angle}', f'zoom: {args.zoom}', f'translation_x: {args.translation_x}', f'translation_y: {args.translation_y}')
-
-            if frame_num > 0:
-                seed = seed + 1
-                if resume_run and frame_num == start_frame:
-                    img_0 = cv2.imread(batchFolder + f"/{batch_name}({batchNum})_{start_frame-1:04}.png")
-                else:
-                    img_0 = cv2.imread('prevFrame.png')
-                center = (1 * img_0.shape[1] // 2, 1 * img_0.shape[0] // 2)
-                trans_mat = np.float32([[1, 0, args.translation_x], [0, 1, args.translation_y]])
-                rot_mat = cv2.getRotationMatrix2D(center, args.angle, args.zoom)
-                trans_mat = np.vstack([trans_mat, [0, 0, 1]])
-                rot_mat = np.vstack([rot_mat, [0, 0, 1]])
-                transformation_matrix = np.matmul(rot_mat, trans_mat)
-                img_0 = cv2.warpPerspective(img_0, transformation_matrix, (img_0.shape[1], img_0.shape[0]), borderMode=cv2.BORDER_WRAP)
-                cv2.imwrite('prevFrameScaled.png', img_0)
-                args.init_image = 'prevFrameScaled.png'
-                args.init_scale = args.frames_scale
-                args.skip_steps = args.calc_frames_skip_steps
-
-        if args.animation_mode == "Video Input":
-            seed = seed + 1
-            args.init_image = f'{videoFramesFolder}/{frame_num+1:04}.jpg'
-            args.init_scale = args.frames_scale
-            skip_steps = args.calc_frames_skip_steps
 
         loss_values = []
 
@@ -1345,10 +1307,10 @@ def do_run(batch_num, slice_num=-1):
         if slice_num >= 0:
             progressBar.set_description(f'Slice {slice_num} of {slices_todo}: ')
         else:
-            progressBar.set_description(f'Image {batch_num + 1} of {n_batches}: ')
-        while cur_t >= stop_early:
+            progressBar.set_description(f'Image {batch_num + 1} of {args.n_batches}: ')
+        while cur_t >= args.stop_early:
             if do_samples == True:
-                samples = do_sample_fn(init, steps - cur_t - 1)
+                samples = do_sample_fn(init, args.steps - cur_t - 1)
                 do_samples = False
             for j, sample in enumerate(samples):
                 actual_run_steps += 1
@@ -1357,7 +1319,7 @@ def do_run(batch_num, slice_num=-1):
                 progressBar.n = actual_run_steps
                 progressBar.refresh()
                 cur_t -= 1
-                if (cur_t < stop_early):
+                if (cur_t < args.stop_early):
                     cur_t = -1
 
                 intermediateStep = False
@@ -1371,7 +1333,7 @@ def do_run(batch_num, slice_num=-1):
                         if args.n_batches > 0:
                             # if intermediates are saved to the subfolder, don't append a step or percentage to the name
                             if cur_t == -1 and args.intermediates_in_subfolder is True:
-                                if animation_mode != "None":
+                                if args.animation_mode != "None":
                                     save_num = f'{frame_num:04}'
                                 else:
                                     if slice_num >= 0:
@@ -1384,24 +1346,24 @@ def do_run(batch_num, slice_num=-1):
                         image = TF.to_pil_image(image.add(1).div(2).clamp(0, 1))
                         # add some key metadata to the PNG if the commandline allows it
                         metadata = PngInfo()
-                        if add_metadata == True:
-                            metadata.add_text("prompt", str(text_prompts))
+                        if args.add_metadata == True:
+                            metadata.add_text("prompt", str(settings.text_prompts))
                             metadata.add_text("seed", str(seed))
-                            metadata.add_text("steps", str(steps))
+                            metadata.add_text("steps", str(settings.steps))
                             metadata.add_text("init_image", str(init_image_OriginalPath))
                             metadata.add_text("skip_steps", str(skip_steps))
                             metadata.add_text("clip_guidance_scale", str(clip_guidance_scale))
-                            metadata.add_text("tv_scale", str(tv_scale))
-                            metadata.add_text("range_scale", str(range_scale))
-                            metadata.add_text("sat_scale", str(sat_scale))
-                            metadata.add_text("eta", str(eta))
-                            metadata.add_text("clamp_max", str(clamp_max))
-                            metadata.add_text("cut_overview", str(cut_overview))
-                            metadata.add_text("cut_innercut", str(cut_innercut))
-                            metadata.add_text("cut_ic_pow", str(og_cut_ic_pow))
+                            metadata.add_text("tv_scale", str(settings.tv_scale))
+                            metadata.add_text("range_scale", str(settings.range_scale))
+                            metadata.add_text("sat_scale", str(settings.sat_scale))
+                            metadata.add_text("eta", str(settings.eta))
+                            metadata.add_text("clamp_max", str(settings.clamp_max))
+                            metadata.add_text("cut_overview", str(settings.cut_overview))
+                            metadata.add_text("cut_innercut", str(settings.cut_innercut))
+                            metadata.add_text("cut_ic_pow", str(settings.cut_ic_pow))
 
                         output_quality = 100
-                        if use_jpg:
+                        if args.use_jpg:
                             filename = filename.replace('.png','.jpg')
                             output_quality = 95
                         
@@ -1427,7 +1389,7 @@ def do_run(batch_num, slice_num=-1):
                                 if args.keep_unsharp is True:
                                     image.save(f'{unsharpenFolder}/{filename}', quality = output_quality)
                             else:
-                                if render_mask:
+                                if args.render_mask:
                                     # I don't know why PILLOW has to have copies of things, but it does. 
                                     print('\nUsing render mask to composite rendered image with init image.')
                                     image2 = image.copy()
@@ -1461,49 +1423,49 @@ def do_run(batch_num, slice_num=-1):
                     #is this do_weights needed?
                     #do_weights(steps - cur_t - 1, clip_managers)
 
-                do_weights(steps - cur_t - 1, clip_managers)
+                do_weights(args.steps - cur_t - 1, clip_managers)
 
                 def get_sample_as_image(sample):
                     image = sample['pred_xstart'][0]
                     image = TF.to_pil_image(image.add(1).div(2).clamp(0, 1))
                     return image
 
-                s = steps - cur_t
+                s = args.steps - cur_t
 
                 # BRIGHTNESS and CONTRAST automatic correction
-                if (s % adjustment_interval == 0) and (s < (steps * .3)) and (fix_brightness_contrast == True):
+                if (s % args.adjustment_interval == 0) and (s < (args.steps * .3)) and (args.fix_brightness_contrast == True):
                     image = get_sample_as_image(sample)
                     stat = ImageStat.Stat(image)
                     brightness = sum(stat.mean) / len(stat.mean)
                     contrast = sum(stat.stddev) / len(stat.stddev)
-                    if (high_brightness_adjust and s > high_brightness_start and brightness > high_brightness_threshold):
+                    if (args.high_brightness_adjust and s > args.high_brightness_start and brightness > args.high_brightness_threshold):
                         progressBar.write(f"High brightness corrected at step {s}")
                         filter = ImageEnhance.Brightness(image)
-                        image = filter.enhance(high_brightness_adjust_amount)
+                        image = filter.enhance(args.high_brightness_adjust_amount)
                         init = TF.to_tensor(image).to(device).unsqueeze(0).mul(2).sub(1)
                         do_samples = True
                         break
 
-                    if (low_brightness_adjust and s > low_brightness_start and brightness < low_brightness_threshold):
+                    if (args.low_brightness_adjust and s > args.low_brightness_start and brightness < args.low_brightness_threshold):
                         progressBar.write(f"Low brightness corrected at step {s}")
                         filter = ImageEnhance.Brightness(image)
-                        image = filter.enhance(low_brightness_adjust_amount)
+                        image = filter.enhance(args.low_brightness_adjust_amount)
                         init = TF.to_tensor(image).to(device).unsqueeze(0).mul(2).sub(1)
                         do_samples = True
                         break
 
-                    if (high_contrast_adjust and s > high_contrast_start and contrast > high_contrast_threshold):
+                    if (args.high_contrast_adjust and s > args.high_contrast_start and contrast > args.high_contrast_threshold):
                         progressBar.write(f"High contrast corrected at step {s}")
                         filter = ImageEnhance.Contrast(image)
-                        image = filter.enhance(high_contrast_adjust_amount)
+                        image = filter.enhance(args.high_contrast_adjust_amount)
                         init = TF.to_tensor(image).to(device).unsqueeze(0).mul(2).sub(1)
                         do_samples = True
                         break
 
-                    if (low_contrast_adjust and s > low_contrast_start and contrast < low_contrast_threshold):
+                    if (args.low_contrast_adjust and s > args.low_contrast_start and contrast < args.low_contrast_threshold):
                         progressBar.write(f"Low contrast corrected at step {s}")
                         filter = ImageEnhance.Contrast(image)
-                        image = filter.enhance(low_contrast_adjust_amount)
+                        image = filter.enhance(args.low_contrast_adjust_amount)
                         init = TF.to_tensor(image).to(device).unsqueeze(0).mul(2).sub(1)
                         do_samples = True
                         break
@@ -1516,7 +1478,6 @@ def do_run(batch_num, slice_num=-1):
                     right_image = left_image.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
                     image.paste(right_image, ((int(side_x / 2)), 0))
                     init = TF.to_tensor(image).to(device).unsqueeze(0).mul(2).sub(1)
-                    #sample['pred_xstart'][0] = TF.to_tensor(image).to(device).unsqueeze(0).mul(2).sub(1) -- this didn't work at all
                     do_samples = True
                     break
 
@@ -1526,103 +1487,7 @@ def do_run(batch_num, slice_num=-1):
 
 
 def save_settings():
-    setting_list = {
-        'batch_name': batch_name,
-        'text_prompts': text_prompts,
-        'n_batches': n_batches,
-        'steps': steps,
-        'display_rate': display_rate,
-        'width_height_scale': width_height_scale,
-        'width': int(width_height[0] / width_height_scale),
-        'height': int(width_height[1] / width_height_scale),
-        'set_seed': seed,
-        'image_prompts': image_prompts,
-        'clip_guidance_scale': clip_guidance_scale,
-        'tv_scale': tv_scale,
-        'range_scale': range_scale,
-        'sat_scale': sat_scale,
-        # 'cutn': cutn,
-        'cutn_batches': og_cutn_batches,
-        'cutn_batches_final': cutn_batches_final,
-        'max_frames': max_frames,
-        'interp_spline': interp_spline,
-        # 'rotation_per_frame': rotation_per_frame,
-        'init_image': init_image,
-        'init_masked': init_masked,
-        'render_mask': render_mask,
-        'init_scale': init_scale,
-        'skip_steps': skip_steps,
-        'skip_steps_ratio': skip_steps_ratio,
-        # 'zoom_per_frame': zoom_per_frame,
-        'frames_scale': frames_scale,
-        'frames_skip_steps': frames_skip_steps,
-        'perlin_init': perlin_init,
-        'perlin_mode': perlin_mode,
-        'skip_augs': skip_augs,
-        'randomize_class': randomize_class,
-        'clip_denoised': clip_denoised,
-        'clamp_grad': clamp_grad,
-        'clamp_max': clamp_max,
-        'fuzzy_prompt': fuzzy_prompt,
-        'rand_mag': rand_mag,
-        'eta': eta,
-        'diffusion_model': diffusion_model.name,
-        'use_secondary_model': use_secondary_model,
-        'diffusion_steps': diffusion_steps,
-        'sampling_mode': sampling_mode,
-        'ViTB32': ViTB32,
-        'ViTB16': ViTB16,
-        'ViTL14': ViTL14,
-        'ViTL14_336': ViTL14_336,
-        'RN101': RN101,
-        'RN50': RN50,
-        'RN50x4': RN50x4,
-        'RN50x16': RN50x16,
-        'RN50x64': RN50x64,
-        'ViTB32_laion2b_e16': ViTB32_laion2b_e16,
-        'ViTB32_laion400m_e31': ViTB32_laion400m_e31,
-        'ViTB32_laion400m_32': ViTB32_laion400m_32,
-        'ViTB32quickgelu_laion400m_e31': ViTB32quickgelu_laion400m_e31,
-        'ViTB32quickgelu_laion400m_e32': ViTB32quickgelu_laion400m_e32,
-        'ViTB16_laion400m_e31': ViTB16_laion400m_e31,
-        'ViTB16_laion400m_e32': ViTB16_laion400m_e32,
-        'RN50_yffcc15m': RN50_yffcc15m,
-        'RN50_cc12m': RN50_cc12m,
-        'RN50_quickgelu_yfcc15m': RN50_quickgelu_yfcc15m,
-        'RN50_quickgelu_cc12m': RN50_quickgelu_cc12m,
-        'RN101_yfcc15m': RN101_yfcc15m,
-        'RN101_quickgelu_yfcc15m': RN101_quickgelu_yfcc15m,
-        'cut_overview': str(cut_overview),
-        'cut_innercut': str(cut_innercut),
-        'cut_ic_pow': og_cut_ic_pow,
-        'cut_ic_pow_final': cut_ic_pow_final,
-        'cut_icgray_p': str(cut_icgray_p),
-        'cut_heatmaps': cut_heatmaps,
-        'smooth_schedules': smooth_schedules,
-        'animation_mode': animation_mode,
-        'key_frames': key_frames,
-        'angle': angle,
-        'zoom': zoom,
-        'translation_x': translation_x,
-        'translation_y': translation_y,
-        'video_init_path': video_init_path,
-        'extract_nth_frame': extract_nth_frame,
-        'stop_early': stop_early,
-        'fix_brightness_contrast': fix_brightness_contrast,
-        'sharpen_preset': sharpen_preset,
-        'keep_unsharp': keep_unsharp,
-        'gobig_scale': gobig_scale,
-        'gobig_skip_ratio': gobig_skip_ratio,
-        'gobig_overlap': gobig_overlap,
-        'symmetry_loss_v': symmetry_loss_v,
-        'symmetry_loss_h': symmetry_loss_h,
-        'symm_loss_scale': symm_loss_scale,
-        'symm_switch': symm_switch,
-        'simple_symmetry': simple_symmetry,
-        'perlin_brightness': perlin_brightness,
-        'perlin_contrast': perlin_contrast,
-        'use_jpg': use_jpg
-    }
+    setting_list = settings.save_settings()
     with open(f"{batchFolder}/{batch_name}_{batchNum}_settings.json",  "w+", encoding="utf-8") as f:  # save settings
         json.dump(setting_list, f, ensure_ascii=False, indent=4)
 
@@ -1803,7 +1668,7 @@ other_sampling_mode = 'bicubic'
 check_model_SHA = False  # @param{type:"boolean"}
 
 # TODO: Chance this to use any available model in the JSON file
-if diffusion_model == 'random':
+if settings.diffusion_model == 'random':
     the_models = [
         '256x256_diffusion_uncond',
         '512x512_diffusion_uncond_finetune_008100',
@@ -1818,8 +1683,8 @@ if diffusion_model == 'random':
         'FeiArt_Handpainted_CG_Diffusion',
         'IsometricDiffusionRevrart512px'
     ]
-    diffusion_model = random.choice(the_models)
-    print(f'Random model selected is {diffusion_model}')
+    settings.diffusion_model = random.choice(the_models)
+    print(f'Random model selected is {settings.diffusion_model}')
 
 
 @dataclass
@@ -1850,7 +1715,7 @@ class Diff_Model:
 try:
     with open('diffusion_models.json', 'r', encoding="utf-8") as json_file:
         print(f'Loading diffusion model details from diffusion_models.json')
-        user_supplied_name = diffusion_model
+        user_supplied_name = settings.diffusion_model
         print(f'Using Diffusion Model: {user_supplied_name}')
         diffusion_models_file = json.load(json_file)
         if user_supplied_name in diffusion_models_file:
@@ -1955,13 +1820,13 @@ def download_models(diffusion_model, use_secondary_model):
         quit()
 
 
-download_models(diffusion_model, use_secondary_model)
+download_models(diffusion_model, settings.use_secondary_model)
 
 model_config = model_and_diffusion_defaults()
 model_config.update({
     'attention_resolutions': diffusion_model.attention_resolutions,
     'class_cond': diffusion_model.class_cond,
-    'diffusion_steps': diffusion_steps,
+    'diffusion_steps': settings.diffusion_steps,
     'rescale_timesteps': diffusion_model.rescale_timesteps,
     'timestep_respacing': diffusion_model.timestep_respacing,
     'image_size': diffusion_model.image_size,
@@ -2025,7 +1890,7 @@ clip_managers = [
         cut_count_multiplier=eval(model_name),
         download_root=model_path_clip,
         device=device,
-        use_cut_heatmap=cut_heatmaps,
+        use_cut_heatmap=settings.cut_heatmaps,
         pad_inner_cuts=True
     )
     for model_name in CLIP_NAME_MAP.keys() if eval(model_name)
@@ -2035,23 +1900,23 @@ clip_modelname = [model_name for model_name in model_load_name_map.keys() if eva
 clip_model_weights = [eval(model_name) for model_name in model_load_name_map.keys() if eval(model_name) > 0.0]
 
 # Get corrected sizes
-side_x = (width_height[0] // 64) * 64
-side_y = (width_height[1] // 64) * 64
-if side_x != width_height[0] or side_y != width_height[1]:
+side_x = (settings.width_height[0] // 64) * 64
+side_y = (settings.width_height[1] // 64) * 64
+if side_x != settings.width_height[0] or side_y != settings.width_height[1]:
     print(f'Changing output size to {side_x}x{side_y}. Dimensions must by multiples of 64.')
 
 estimate_vram_requirements(
     side_x=side_x,
     side_y=side_y,
-    cut_innercut=cut_innercut,
-    cut_overview=cut_overview,
+    cut_innercut=settings.cut_innercut,
+    cut_overview=settings.cut_overview,
     clip_model_names=clip_modelname,
     diffusion_model_name=diffusion_model.name,
-    use_secondary=use_secondary_model,
+    use_secondary=settings.use_secondary_model,
     device=device
 )
 lpips_model = load_lpips_model()
-if use_secondary_model:
+if settings.use_secondary_model:
     secondary_model = load_secondary_model()
 
 print('\nLoading CLIP Models:\n')
@@ -2060,160 +1925,18 @@ for clip_manager in clip_managers:
     clip_manager.load()
 
 # Update Model Settings
-timestep_respacing = f'ddim{steps}'
-diffusion_steps = (1000 // steps) * steps if steps < 1000 else steps
+timestep_respacing = f'ddim{settings.steps}'
+settings.diffusion_steps = (1000 // settings.steps) * settings.steps if settings.steps < 1000 else settings.steps
 model_config.update({
     'timestep_respacing': timestep_respacing,
-    'diffusion_steps': diffusion_steps,
+    'diffusion_steps': settings.diffusion_steps,
 })
 
 # Make folder for batch
-batchFolder = f'{outDirPath}/{batch_name}'
+batchFolder = f'{outDirPath}/{settings.batch_name}'
 createPath(batchFolder)
-"""###Animation Settings"""
 
-# @markdown ####**Animation Mode:**
-animation_mode = "None"  # @param['None', '2D', 'Video Input']
-# @markdown *For animation, you probably want to turn `cutn_batches` to 1 to make it quicker.*
-
-# @markdown ---
-
-# @markdown ####**Video Input Settings:**
-# video_init_path = "/content/training.mp4" #@param {type: 'string'}
-# extract_nth_frame = 2 #@param {type:"number"}
-
-if animation_mode == "Video Input":
-    videoFramesFolder = f'/content/videoFrames'
-    createPath(videoFramesFolder)
-    print(f"Exporting Video Frames (1 every {extract_nth_frame})...")
-    try:
-        #!rm {videoFramesFolder}/*.jpg
-        tempfileList = glob.glob(videoFramesFolder + '/*.jpg')
-        for tempfilePath in tempfileList:
-            os.remove(tempfilePath)
-    except:
-        print('')
-    vf = f'"select=not(mod(n\,{extract_nth_frame}))"'
-    subprocess.run([
-        'ffmpeg', '-i', f'{video_init_path}', '-vf', f'{vf}', '-vsync', 'vfr',
-        '-q:v', '2', '-loglevel', 'error', '-stats',
-        f'{videoFramesFolder}/%04d.jpg'
-    ],
-        stdout=subprocess.PIPE).stdout.decode('utf-8')
-
-
-if animation_mode == "Video Input":
-    max_frames = len(glob(f'{videoFramesFolder}/*.jpg'))
-
-
-def parse_key_frames(string, prompt_parser=None):
-    """Given a string representing frame numbers paired with parameter values at that frame,
-    return a dictionary with the frame numbers as keys and the parameter values as the values.
-
-    Parameters
-    ----------
-    string: string
-        Frame numbers paired with parameter values at that frame number, in the format
-        'framenumber1: (parametervalues1), framenumber2: (parametervalues2), ...'
-    prompt_parser: function or None, optional
-        If provided, prompt_parser will be applied to each string of parameter values.
-
-    Returns
-    -------
-    dict
-        Frame numbers as keys, parameter values at that frame number as values
-
-    Raises
-    ------
-    RuntimeError
-        If the input string does not match the expected format.
-
-    Examples
-    --------
-    >>> parse_key_frames("10:(Apple: 1| Orange: 0), 20: (Apple: 0| Orange: 1| Peach: 1)")
-    {10: 'Apple: 1| Orange: 0', 20: 'Apple: 0| Orange: 1| Peach: 1'}
-
-    >>> parse_key_frames("10:(Apple: 1| Orange: 0), 20: (Apple: 0| Orange: 1| Peach: 1)", prompt_parser=lambda x: x.lower()))
-    {10: 'apple: 1| orange: 0', 20: 'apple: 0| orange: 1| peach: 1'}
-    """
-    pattern = r'((?P<frame>[0-9]+):[\s]*[\(](?P<param>[\S\s]*?)[\)])'
-    frames = dict()
-    for match_object in re.finditer(pattern, string):
-        frame = int(match_object.groupdict()['frame'])
-        param = match_object.groupdict()['param']
-        if prompt_parser:
-            frames[frame] = prompt_parser(param)
-        else:
-            frames[frame] = param
-
-    if frames == {} and len(string) != 0:
-        raise RuntimeError('Key Frame string not correctly formatted')
-    return frames
-
-
-def get_inbetweens(key_frames, integer=False):
-    """Given a dict with frame numbers as keys and a parameter value as values,
-    return a pandas Series containing the value of the parameter at every frame from 0 to max_frames.
-    Any values not provided in the input dict are calculated by linear interpolation between
-    the values of the previous and next provided frames. If there is no previous provided frame, then
-    the value is equal to the value of the next provided frame, or if there is no next provided frame,
-    then the value is equal to the value of the previous provided frame. If no frames are provided,
-    all frame values are NaN.
-
-    Parameters
-    ----------
-    key_frames: dict
-        A dict with integer frame numbers as keys and numerical values of a particular parameter as values.
-    integer: Bool, optional
-        If True, the values of the output series are converted to integers.
-        Otherwise, the values are floats.
-
-    Returns
-    -------
-    pd.Series
-        A Series with length max_frames representing the parameter values for each frame.
-
-    Examples
-    --------
-    >>> max_frames = 5
-    >>> get_inbetweens({1: 5, 3: 6})
-    0    5.0
-    1    5.0
-    2    5.5
-    3    6.0
-    4    6.0
-    dtype: float64
-
-    >>> get_inbetweens({1: 5, 3: 6}, integer=True)
-    0    5
-    1    5
-    2    5
-    3    6
-    4    6
-    dtype: int64
-    """
-    key_frame_series = pd.Series([np.nan for a in range(max_frames)])
-
-    for i, value in key_frames.items():
-        key_frame_series[i] = value
-    key_frame_series = key_frame_series.astype(float)
-
-    interp_method = interp_spline
-
-    if interp_method == 'Cubic' and len(key_frames.items()) <= 3:
-        interp_method = 'Quadratic'
-
-    if interp_method == 'Quadratic' and len(key_frames.items()) <= 2:
-        interp_method = 'Linear'
-
-    key_frame_series[0] = key_frame_series[key_frame_series.first_valid_index()]
-    key_frame_series[max_frames - 1] = key_frame_series[key_frame_series.last_valid_index()]
-    # key_frame_series = key_frame_series.interpolate(method=intrp_method,order=1, limit_direction='both')
-    key_frame_series = key_frame_series.interpolate(method=interp_method.lower(), limit_direction='both')
-    if integer:
-        return key_frame_series.astype(int)
-    return key_frame_series
-
+animation_mode = "None" 
 
 def split_prompts(prompts):
     # Take the discrete prompts provided and build a frame-by-frame list of prompts that will be used
@@ -2234,82 +1957,18 @@ def split_prompts(prompts):
             del last_prompt
         last_prompt = v
     # now fill the list until we get to max_frames, for future animation support
-    if last_k < max_frames:
-        while last_k < max_frames:
+    if last_k < settings.max_frames:
+        while last_k < settings.max_frames:
             last_k += 1
             prompt_series.update({last_k: last_prompt})
     return prompt_series
-
-
-if key_frames:
-    try:
-        angle_series = get_inbetweens(parse_key_frames(angle))
-    except RuntimeError as e:
-        print(
-            "WARNING: You have selected to use key frames, but you have not "
-            "formatted `angle` correctly for key frames.\n"
-            "Attempting to interpret `angle` as "
-            f'"0: ({angle})"\n'
-            "Please read the instructions to find out how to use key frames "
-            "correctly.\n"
-        )
-        angle = f"0: ({angle})"
-        angle_series = get_inbetweens(parse_key_frames(angle))
-
-    try:
-        zoom_series = get_inbetweens(parse_key_frames(zoom))
-    except RuntimeError as e:
-        print(
-            "WARNING: You have selected to use key frames, but you have not "
-            "formatted `zoom` correctly for key frames.\n"
-            "Attempting to interpret `zoom` as "
-            f'"0: ({zoom})"\n'
-            "Please read the instructions to find out how to use key frames "
-            "correctly.\n"
-        )
-        zoom = f"0: ({zoom})"
-        zoom_series = get_inbetweens(parse_key_frames(zoom))
-
-    try:
-        translation_x_series = get_inbetweens(parse_key_frames(translation_x))
-    except RuntimeError as e:
-        print(
-            "WARNING: You have selected to use key frames, but you have not "
-            "formatted `translation_x` correctly for key frames.\n"
-            "Attempting to interpret `translation_x` as "
-            f'"0: ({translation_x})"\n'
-            "Please read the instructions to find out how to use key frames "
-            "correctly.\n"
-        )
-        translation_x = f"0: ({translation_x})"
-        translation_x_series = get_inbetweens(parse_key_frames(translation_x))
-
-    try:
-        translation_y_series = get_inbetweens(parse_key_frames(translation_y))
-    except RuntimeError as e:
-        print(
-            "WARNING: You have selected to use key frames, but you have not "
-            "formatted `translation_y` correctly for key frames.\n"
-            "Attempting to interpret `translation_y` as "
-            f'"0: ({translation_y})"\n'
-            "Please read the instructions to find out how to use key frames "
-            "correctly.\n"
-        )
-        translation_y = f"0: ({translation_y})"
-        translation_y_series = get_inbetweens(parse_key_frames(translation_y))
-
-else:
-    angle = float(angle)
-    zoom = float(zoom)
-    translation_x = float(translation_x)
-    translation_y = float(translation_y)
 
 intermediates_in_subfolder = True
 
 # Save a checkpoint at 20% for use as a later init image
 if geninit:
-    intermediate_saves = [int(steps * geninitamount)]
-    print(f'debug: steps is {steps} and geninitamount is {geninitamount}')
+    intermediate_saves = [int(settings.steps * geninitamount)]
+    print(f'debug: steps is {settings.steps} and geninitamount is {geninitamount}')
     print(f'debug: intermediate_saves is {intermediate_saves}')
 
 # processes a setting that can be done at certain steps
@@ -2334,13 +1993,13 @@ def do_at_step(value, steps, skip_steps):
             this_step += interval
     return new_value
 
-intermediate_saves = do_at_step(intermediate_saves, steps, skip_steps)
+settings.intermediate_saves = do_at_step(settings.intermediate_saves, settings.steps, settings.skip_steps)
 
-if simple_symmetry != [0]:
-    simple_symmetry = do_at_step(simple_symmetry, steps, skip_steps)
-    print(f'Simple symmetry will happen at {simple_symmetry} steps')
+if settings.simple_symmetry != [0]:
+    settings.simple_symmetry = do_at_step(settings.simple_symmetry, settings.steps, settings.skip_steps)
+    print(f'Simple symmetry will happen at {settings.simple_symmetry} steps')
 
-if intermediate_saves and intermediates_in_subfolder is True:
+if settings.intermediate_saves and intermediates_in_subfolder is True:
     partialFolder = f'{batchFolder}/partials'
     createPath(partialFolder)
 
@@ -2354,10 +2013,10 @@ def move_files(start_num, end_num, old_folder, new_folder):
         os.rename(old_file, new_file)
 
 
-resume_run = False  # @param{type: 'boolean'}
-run_to_resume = 'latest'  # @param{type: 'string'}
-resume_from_frame = 'latest'  # @param{type: 'string'}
-retain_overwritten_frames = False  # @param{type: 'boolean'}
+resume_run = False  
+run_to_resume = 'latest'  
+resume_from_frame = 'latest'  
+retain_overwritten_frames = False  
 if retain_overwritten_frames is True:
     retainFolder = f'{batchFolder}/retained'
     createPath(retainFolder)
@@ -2365,7 +2024,7 @@ if retain_overwritten_frames is True:
 skip_step_ratio = int(settings.frames_skip_steps.rstrip("%")) / 100
 calc_frames_skip_steps = math.floor(settings.steps * skip_step_ratio)
 
-if steps <= calc_frames_skip_steps:
+if settings.steps <= calc_frames_skip_steps:
     sys.exit("ERROR: You can't skip more steps than your total steps")
 
 if resume_run:
@@ -2373,22 +2032,22 @@ if resume_run:
         try:
             batchNum
         except:
-            batchNum = len(glob(f"{batchFolder}/{batch_name}(*)_settings.json")) - 1
+            batchNum = len(glob(f"{batchFolder}/{settings.batch_name}(*)_settings.json")) - 1
     else:
         batchNum = int(run_to_resume)
     if resume_from_frame == 'latest':
-        start_frame = len(glob(batchFolder + f"/{batch_name}({batchNum})_*.png"))
+        start_frame = len(glob(batchFolder + f"/{settings.batch_name}({batchNum})_*.png"))
     else:
         start_frame = int(resume_from_frame) + 1
         if retain_overwritten_frames is True:
-            existing_frames = len(glob(batchFolder + f"/{batch_name}({batchNum})_*.png"))
+            existing_frames = len(glob(batchFolder + f"/{settings.batch_name}({batchNum})_*.png"))
             frames_to_save = existing_frames - start_frame
             print(f'Moving {frames_to_save} frames to the Retained folder')
             move_files(start_frame, existing_frames, batchFolder, retainFolder)
 else:
-    if "_" in batch_name:
+    if "_" in settings.batch_name:
         print(f'Replacing _ with - in batch_name to keep file numbering logic from exploding.')
-        batch_name = batch_name.replace('_', '-')
+        settings.batch_name = settings.batch_name.replace('_', '-')
     start_frame = 0
     #batchNum = len(glob(batchFolder + "/*.json"))
     # changing old naming method -- intstead of counting files, take the highest numbered file + 1
@@ -2396,7 +2055,7 @@ else:
     count = 0
     filenums = []
     for file in files:
-        if batch_name in file and ".json" in file:
+        if settings.batch_name in file and ".json" in file:
             start = file.index('_')
             end = file.index('_', start+1)
             filenum = int(file[(start + 1):end])
@@ -2406,14 +2065,14 @@ else:
     else:
         batchNum = max(filenums) + 1
 
-print(f'\nStarting Run: {batch_name}({batchNum}) at frame {start_frame}')
+print(f'\nStarting Run: {settings.batch_name}({batchNum}) at frame {start_frame}')
 
 if settings.set_seed == 'random_seed':
     random.seed()
-    seed = random.randint(0, 2**32)
+    settings.seed = random.randint(0, 2**32)
     # print(f'Using seed: {seed}')
 else:
-    seed = int(settings.set_seed)
+    settings.seed = int(settings.set_seed)
 
 # convert old number-style settings to new scheduled settings
 og_cut_ic_pow = settings.cut_ic_pow
@@ -2426,7 +2085,7 @@ if type(settings.cut_ic_pow) != str:
 if type(settings.clip_guidance_scale) != str:
     settings.clip_guidance_scale = num_to_schedule(settings.clip_guidance_scale)
 
-print(f'Using seed {seed}')
+print(f'Using seed {settings.seed}')
 
 
 # Leave this section alone, it takes all our settings and puts them in one variable dictionary
@@ -2435,7 +2094,7 @@ args = {
     'prompts_series': split_prompts(settings.text_prompts) if settings.text_prompts else None,
     'image_prompts_series':
     split_prompts(settings.image_prompts) if settings.image_prompts else None,
-    'seed': seed,
+    'seed': settings.seed,
     'display_rate': settings.display_rate,
     'n_batches': settings.n_batches if settings.animation_mode == 'None' else 1,
     'batch_size': settings.batch_size,
@@ -2625,13 +2284,9 @@ def grid_coords(target, original, overlap):
     return result, (new_edgex, new_edgey)
 
 # Chop our source into a grid of images that each equal the size of the original render
-def grid_slice(source, overlap, og_size, maximize=False): 
+def grid_slice(source, overlap, og_size): 
     width, height = og_size # size of the slices to be rendered
-    maximize = True # remove this once it's working
     coordinates, new_size = grid_coords(source.size, og_size, overlap)
-    if maximize == True:
-        source = source.resize(new_size, get_resampling_mode()) # minor concern that we're resizing twice
-        coordinates, new_size = grid_coords(source.size, og_size, overlap) # re-do the coordinates with the new canvas size
     # loc_width and loc_height are the center point of the goal size, and we'll start there and work our way out
     slices = []
     for coordinate in coordinates:
@@ -2646,7 +2301,7 @@ try:
     if (cl_args.gui):
         print("Using the gui this way is deprecated. Details on the new GUI are at https://github.com/KnoBuddy/visualdiffusion'")
     print(f'\nStarting batch!')
-    for batch_image in range(n_batches):
+    for batch_image in range(settings.n_batches):
         og_size = (side_x, side_y)
         if cl_args.gobiginit is None:
             do_run(batch_image)
@@ -2658,7 +2313,7 @@ try:
             if cl_args.gobig_slices:
                 slices_todo = cl_args.gobig_slices
             else:
-                slices_todo = (gobig_scale * gobig_scale) + 1  # we want 5 total slices for a 2x increase, 4 to match the total pixel increase + 1 to cover overlap
+                slices_todo = (settings.gobig_scale * settings.gobig_scale) + 1  # we want 5 total slices for a 2x increase, 4 to match the total pixel increase + 1 to cover overlap
             temp_args = SimpleNamespace(**vars(args))  # make a backup copy of args so we can reset it after gobig
             if cl_args.cuda != '0':
                 progress_image = (f'progress{cl_args.cuda}.png')
@@ -2666,18 +2321,18 @@ try:
                 progress_image = 'progress.png'
             # grab the init image and make it our progress image
             if cl_args.gobiginit is not None:
-                shutil.copy(init_image, progress_image)                
+                shutil.copy(settings.init_image, progress_image)                
             # Setup some filenames
             if cl_args.cuda != '0':  # handle if a different GPU is in use
                 slice_image = (f'slice{cl_args.cuda}.png')
                 slice_imask = (f'slice_imask{cl_args.cuda}.png')
                 slice_rmask = (f'slice_rmask{cl_args.cuda}.png')
-                final_output_image = (f'{batchFolder}/{batch_name}_go_big_{cl_args.cuda}_{batchNum}_{batch_image}.png')
+                final_output_image = (f'{batchFolder}/{settings.batch_name}_go_big_{cl_args.cuda}_{batchNum}_{batch_image}.png')
             else:
                 slice_image = 'slice.png'
                 slice_imask = 'slice_imask.png'
                 slice_rmask = 'slice_rmask.png'
-                final_output_image = (f'{batchFolder}/{batch_name}_go_big_{batchNum}_{batch_image}.png')
+                final_output_image = (f'{batchFolder}/{settings.batch_name}_go_big_{batchNum}_{batch_image}.png')
 
             # To keep things simple (hah), we'll create a fully white render_mask to use in the case that there's no provided render_mask
             # that way there's going to be a render_mask no matter what, and we don't have to keep checking for it
@@ -2685,27 +2340,27 @@ try:
             # Resize init if needed, as well as any render mask. For now we assume the render mask matches the size of the init.
             if cl_args.gobiginit_scaled == False:
                 input_image = Image.open(progress_image).convert('RGBA')
-                reside_x = side_x * gobig_scale
-                reside_y = side_y * gobig_scale
+                reside_x = side_x * settings.gobig_scale
+                reside_y = side_y * settings.gobig_scale
                 source_image = input_image.resize((reside_x, reside_y), get_resampling_mode())
                 input_image.close()
             else:
                 source_image = Image.open(progress_image).convert('RGBA')
-                og_size = (int(side_x / gobig_scale), int(side_y / gobig_scale)) # we want to render sections that are what the original pre-scaled size probably was
+                og_size = (int(side_x / settings.gobig_scale), int(side_y / settings.gobig_scale)) # we want to render sections that are what the original pre-scaled size probably was
             # Slice source_image into overlapping slices
-            slices, new_canvas_size = grid_slice(source_image, gobig_overlap, og_size)
+            slices, new_canvas_size = grid_slice(source_image, settings.gobig_overlap, og_size)
             # Gobig_maximize increases our render canvas to include otherwise wasted pixels.
-            if gobig_maximize == True: #TODO: optimize this so we don't have to run the slicer again
+            if settings.gobig_maximize == True: #TODO: optimize this so we don't have to run the slicer again
                 source_image = source_image.resize(new_canvas_size, get_resampling_mode())
-                slices, new_canvas_size = grid_slice(source_image, gobig_overlap, og_size) # now that we have the ultimate size, we have to get a new set of coords
+                slices, new_canvas_size = grid_slice(source_image, settings.gobig_overlap, og_size) # now that we have the ultimate size, we have to get a new set of coords
                 print(f'GOBIG maximize is on. New size is now {source_image.size}')
-            if render_mask is not None:
+            if settings.render_mask is not None:
                 source_render_mask = Image.open(render_mask).convert('RGBA')
                 source_render_mask = source_render_mask.resize(source_image.size, get_resampling_mode())
                 rmasks = grid_slice(source_render_mask, og_size)
             else:
                 rmasks = None
-            if init_masked is not None:
+            if settings.init_masked is not None:
                 source_imask = Image.open(init_masked).convert('RGBA')
                 source_imask = source_imask.resize(source_image.size, get_resampling_mode())
                 imasks = grid_slice(source_imask, og_size)
@@ -2725,8 +2380,7 @@ try:
                     chunk_imask = imasks[count][0]
                 else:
                     chunk_imask = None
-                seed = seed + 1
-                args.seed = seed
+                args.seed = args.seed + 1
                 # Reset underlying systems for another run
                 model, diffusion = create_model_and_diffusion(**model_config)
                 model.load_state_dict(torch.load(f'{model_path}/{diffusion_model.path}', map_location='cpu'))
@@ -2757,8 +2411,8 @@ try:
                 args.symmetry_loss_v = False
                 args.symmetry_loss_h = False
                 args.perlin_init = False
-                perlin_init = False
-                args.skip_steps = int(steps * gobig_skip_ratio)
+                settings.perlin_init = False
+                args.skip_steps = int(settings.steps * settings.gobig_skip_ratio)
                 args.side_x, args.side_y = chunk.size
                 side_x, side_y = chunk.size
                 args.fix_brightness_contrast = False
@@ -2776,11 +2430,10 @@ try:
             alpha_gradient = ImageDraw.Draw(alpha)
             a = 0
             i = 0
-            overlap = gobig_overlap
             shape = ((args.side_x, args.side_y), (0,0))
-            while i < overlap:
+            while i < settings.gobig_overlap:
                 alpha_gradient.rectangle(shape, fill = a)
-                a += 4
+                a += int(255 / settings.gobig_overlap)
                 i += 1
                 shape = ((args.side_x - i, args.side_y - i), (i,i))
             mask = Image.new('RGBA', (args.side_x, args.side_y), color=0)
@@ -2809,53 +2462,3 @@ finally:
     if "cuda" in str(device):
         with torch.cuda.device(device):
             torch.cuda.empty_cache()
-
-# @title ### **Create video**
-
-skip_video_for_run_all = True  # @param {type: 'boolean'}
-
-if skip_video_for_run_all == False:
-    # import subprocess in case this cell is run without the above cells
-    import subprocess
-    from base64 import b64encode
-
-    latest_run = batchNum
-
-    folder = batch_name  # @param
-    run = latest_run  # @param
-    final_frame = 'final_frame'
-
-    init_frame = 1  # @param {type:"number"} This is the frame where the video will start
-    last_frame = final_frame  # @param {type:"number"} You can change i to the number of the last frame you want to generate. It will raise an error if that number of frames does not exist.
-    fps = 12  # @param {type:"number"}
-    view_video_in_cell = False  # @param {type: 'boolean'}
-
-    frames = []
-
-    if last_frame == 'final_frame':
-        last_frame = len(glob(batchFolder + f"/{folder}({run})_*.png"))
-        print(f'Total frames: {last_frame}')
-
-    image_path = f"{outDirPath}/{folder}/{folder}({run})_%04d.png"
-    filepath = f"{outDirPath}/{folder}/{folder}({run}).mp4"
-
-    cmd = [
-        'ffmpeg', '-y', '-vcodec', 'png', '-r',
-        str(fps), '-start_number',
-        str(init_frame), '-i', image_path, '-frames:v',
-        str(last_frame + 1), '-c:v', 'libx264', '-vf', f'fps={fps}',
-        '-pix_fmt', 'yuv420p', '-crf', '17', '-preset', 'very ', filepath
-    ]
-
-    process = subprocess.Popen(
-        cmd,
-        cwd=f'{batchFolder}',
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE
-    )
-    stdout, stderr = process.communicate()
-    if process.returncode != 0:
-        print(stderr)
-        raise RuntimeError(stderr)
-    else:
-        print("The video is ready")
