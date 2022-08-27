@@ -89,14 +89,6 @@
     "sharpen_preset": "Off",
     "frames_scale": 1500,
     "frames_skip_steps": "60%",
-    "animation_mode": "None",
-    "key_frames": true,
-    "angle": "0:(0)",
-    "zoom": "0: (1), 10: (1.05)",
-    "translation_x": "0: (0)",
-    "translation_y": "0: (0)",
-    "video_init_path": "/content/training.mp4",
-    "extract_nth_frame": 2,
     "use_jpg": false,
     "cool_down": 0
 }

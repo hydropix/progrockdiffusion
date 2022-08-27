@@ -83,6 +83,7 @@ class Settings:
     gobig_scale = 2
     gobig_skip_ratio = 0.6
     gobig_overlap = 64
+    gobig_maximize = False
     symmetry_loss_v = False
     symmetry_loss_h = False
     symm_loss_scale = "[2500]*1000"
@@ -277,6 +278,8 @@ class Settings:
             self.gobig_skip_ratio = (settings_file['gobig_skip_ratio'])
         if is_json_key_present(settings_file, 'gobig_overlap'):
             self.gobig_overlap = (settings_file['gobig_overlap'])
+        if is_json_key_present(settings_file, 'gobig_maximize'):
+            self.gobig_maximize = (settings_file['gobig_maximize'])
         if is_json_key_present(settings_file, 'symmetry_loss'):
             self.symmetry_loss_v = (settings_file['symmetry_loss'])
             print("symmetry_loss was depracated, please use symmetry_loss_v in the future")
@@ -386,6 +389,7 @@ class Settings:
             'gobig_scale': self.gobig_scale,
             'gobig_skip_ratio': self.gobig_skip_ratio,
             'gobig_overlap': self.gobig_overlap,
+            'gobig_maximize': self.gobig_maximize,
             'symmetry_loss_v': self.symmetry_loss_v,
             'symmetry_loss_h': self.symmetry_loss_h,
             'symm_loss_scale': self.symm_loss_scale,

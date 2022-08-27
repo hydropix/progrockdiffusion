@@ -552,7 +552,7 @@ if cl_args.useinit:
         settings.init_image = cl_args.useinit
         print(f'UseInit mode is using {cl_args.useinit} and starting at {settings.skip_steps}.')
     else:
-        init_image = 'geninit.png'
+        settings.init_image = 'geninit.png'
         if path.exists(settings.init_image):
             print(f'UseInit mode is using {settings.init_image} and starting at {settings.skip_steps}.')
             useinit = True
@@ -874,8 +874,6 @@ def symm_loss_h(im, lpm):
     return lpm(w1, w2)
 
 
-stop_on_next_loop = False  # Make sure GPU memory doesn't get corrupted from cancelling the run mid-way through, allow a full frame to complete
-scoreprompt = True
 actual_total_steps = settings.steps
 actual_run_steps = 0
 
@@ -894,496 +892,489 @@ def do_run(batch_num, slice_num=-1):
         with open(f"{batchFolder}/{args.batch_name}_{batchNum}_settings.json",  "w+", encoding="utf-8") as f:  # save settings
             json.dump(setting_list, f, ensure_ascii=False, indent=4)
 
-    for frame_num in range(args.start_frame, args.max_frames):
-        if stop_on_next_loop:
-            break
+    loss_values = []
 
-        loss_values = []
+    if seed is not None:
+        np.random.seed(seed + batch_num)
+        random.seed(seed + batch_num)
+        torch.manual_seed(seed + batch_num)
 
-        if seed is not None:
-            np.random.seed(seed + batch_num)
-            random.seed(seed + batch_num)
-            torch.manual_seed(seed + batch_num)
+    if args.cool_down >= 1:
+        cooling_delay = round((args.cool_down / args.steps),2)
+        print(f'Adding {args.cool_down} seconds of cool down time ({cooling_delay} per step)')
+    
+    if batch_num == 0:
+        save_settings()
 
-        if args.cool_down >= 1:
-            cooling_delay = round((args.cool_down / args.steps),2)
-            print(f'Adding {args.cool_down} seconds of cool down time ({cooling_delay} per step)')
-        
-        # Use next prompt in series when doing a batch run
-        if args.animation_mode == "None":
-            frame_num = batch_num
+    frame_num = batch_num
+    if args.prompts_series is not None and frame_num >= len(
+            args.prompts_series):
+        frame_prompt = args.prompts_series[-1]
+    elif args.prompts_series is not None:
+        frame_prompt = args.prompts_series[frame_num]
+    else:
+        frame_prompt = []
 
-        if frame_num == 0 or batch_num == 0:
-            save_settings()
+    # TODO: Image prompts are being fetched on every cut for every model, which is quite slow.
+    # We should get the image once and keep it in ram, reference it that way.
+    if args.image_prompts_series is not None and frame_num >= len(
+            args.image_prompts_series):
+        image_prompt = args.image_prompts_series[-1]
+    elif args.image_prompts_series is not None:
+        image_prompt = args.image_prompts_series[frame_num]
+    else:
+        image_prompt = []
 
-        if args.prompts_series is not None and frame_num >= len(
-                args.prompts_series):
-            frame_prompt = args.prompts_series[-1]
-        elif args.prompts_series is not None:
-            frame_prompt = args.prompts_series[frame_num]
+    if (type(frame_prompt) is list):
+        frame_prompt = {0: frame_prompt}
+
+    if (type(image_prompt) is list):
+        image_prompt = {0: image_prompt}
+
+    prev_sample_prompt = []
+    prev_sample_image_prompt = []
+
+    def do_weights(s, clip_managers):
+        nonlocal prev_sample_prompt
+        nonlocal prev_sample_image_prompt
+        sample_prompt = []
+        sample_image_prompt = []
+
+        print_sample_prompt = False
+        if (s not in frame_prompt.keys()):
+            sample_prompt = prev_sample_prompt.copy()
         else:
-            frame_prompt = []
+            print_sample_prompt = True
+            sample_prompt = frame_prompt[s].copy()
+            prev_sample_prompt = sample_prompt.copy()
 
-        # TODO: Image prompts are being fetched on every cut for every model, which is quite slow.
-        # We should get the image once and keep it in ram, reference it that way.
-        if args.image_prompts_series is not None and frame_num >= len(
-                args.image_prompts_series):
-            image_prompt = args.image_prompts_series[-1]
-        elif args.image_prompts_series is not None:
-            image_prompt = args.image_prompts_series[frame_num]
+        if print_sample_prompt:
+            print(f'\nPrompt for step {s}: {sample_prompt}')
+
+        print_sample_image_prompt = False
+        if (s not in image_prompt.keys()):
+            sample_image_prompt = prev_sample_image_prompt.copy()
         else:
-            image_prompt = []
+            print_sample_image_prompt = True
+            sample_image_prompt = image_prompt[s].copy()
+            prev_sample_image_prompt = sample_image_prompt.copy()
 
-        if (type(frame_prompt) is list):
-            frame_prompt = {0: frame_prompt}
+        if print_sample_image_prompt and len(sample_image_prompt) != 0:
+            print(f'\nImage prompt for step {s}: {sample_image_prompt}')
 
-        if (type(image_prompt) is list):
-            image_prompt = {0: image_prompt}
+        for clip_manager in clip_managers:
+            # We should probably let the clip_manager manage its own state
+            # but do this for now.
+            if sample_prompt and print_sample_prompt: # only need to do this if the prompt has changed
+                prompt_embeds, prompt_weights = clip_manager.embed_text_prompts(
+                    prompts=sample_prompt,
+                    step=s,
+                    fuzzy_prompt=args.fuzzy_prompt,
+                    fuzzy_prompt_rand_mag=args.rand_mag
+                )
+                clip_manager.prompt_embeds = prompt_embeds
+                clip_manager.prompt_weights = prompt_weights
+            if sample_image_prompt and print_sample_image_prompt: # only need to do this if the prompt has changed
+                img_prompt_embeds, img_prompt_weights = clip_manager.embed_image_prompts(
+                    prompts=sample_image_prompt,
+                    step=s,
+                    cutn=16,
+                    cut_model=MakeCutoutsDango,
+                    side_x=args.side_x,
+                    side_y=args.side_y,
+                    fuzzy_prompt=args.fuzzy_prompt,
+                    fuzzy_prompt_rand_mag=args.rand_mag,
+                    cutout_skip_augs=args.skip_augs
+                )
+                if clip_manager.prompt_embeds is not None:
+                    clip_manager.prompt_embeds = torch.cat([img_prompt_embeds, clip_manager.prompt_embeds])
+                else:
+                    clip_manager.prompt_embeds = img_prompt_embeds
+                if clip_manager.prompt_weights is not None:
+                    clip_manager.prompt_weights = torch.cat([img_prompt_weights, clip_manager.prompt_weights])
+                else:
+                    clip_manager.prompt_weights = img_prompt_weights
+            if not any((sample_prompt, sample_image_prompt)):
+                raise RuntimeError("No prompts provided. You must provide text_prompts and/or image_prompts.")
 
-        prev_sample_prompt = []
-        prev_sample_image_prompt = []
+            if clip_manager.prompt_weights.sum().abs() < 1e-3:
+                raise RuntimeError('The weights must not sum to 0.')
+            clip_manager.prompt_weights /= clip_manager.prompt_weights.sum().abs()
 
-        def do_weights(s, clip_managers):
-            nonlocal prev_sample_prompt
-            nonlocal prev_sample_image_prompt
-            sample_prompt = []
-            sample_image_prompt = []
+    initial_weights = False
 
-            print_sample_prompt = False
-            if (s not in frame_prompt.keys()):
-                sample_prompt = prev_sample_prompt.copy()
+    print(f'Skipping {args.skip_steps} steps')
+
+    if (args.skip_steps > 0):
+        for i in range(args.skip_steps, 0, -1):
+            if (str(i) in frame_prompt.keys()):
+                do_weights(i, clip_managers)
+                initial_weights = True
+                break
+
+    # if no init_masked is provided, we make one with the render mask
+    def make_masked_init(image, mask):
+        image = np.array(image)
+        image = image.astype(np.float32)/255.0
+        image = image[None].transpose(0,3,1,2)
+        image = torch.from_numpy(image)
+
+        mask = np.array(mask)
+        mask = mask.astype(np.float32)/255.0
+        mask = mask[None,None]
+        mask = torch.from_numpy(mask)
+
+        masked_image = (0+mask)*image
+        return masked_image
+
+    if (not initial_weights):
+        do_weights(0, clip_managers)
+
+    #Init Image stuff:
+    #init is ultimately what we render against
+    #init_image is the image to use to start with, unless we have init_masked, in which case we just store init_image
+    #init_masked is a secondary init image with data only where we want to render (can be perlin instead, see below)
+    #render_mask is tells us what part of the render to keep (white) and what part to restore from init_image
+    #TODO: consider how this is affected by gobig
+    init = None
+    if args.init_image is not None:
+        init_img = Image.open(fetch(args.init_image)).convert('RGB')
+        init_img = init_img.resize((args.side_x, args.side_y), get_resampling_mode())
+        if args.init_masked is not None:
+            init_masked_img = Image.open(fetch(args.init_masked)).convert('RGB')
+            init = TF.to_tensor(init_masked_img).to(device).unsqueeze(0).mul(2).sub(1)
+        else:
+            init = TF.to_tensor(init_img).to(device).unsqueeze(0).mul(2).sub(1)
+        init_img = init_img.convert('RGBA') # now that we've made our init, we add an alpha channel for later compositing
+
+    rmask = None
+    if args.render_mask is not None:
+        rmask_img = Image.open(fetch(args.render_mask)).convert('L')
+        rmask_img = rmask_img.resize((args.side_x, args.side_y), get_resampling_mode())
+        rmask = TF.to_tensor(rmask_img).to(device).unsqueeze(0)
+        if args.init_masked is None:
+            init = gen_perlin()
+            init = TF.to_pil_image(init.clamp(0, 1).squeeze())
+            init_mask = make_masked_init(init, rmask_img).to(device)
+            init_mask = TF.to_pil_image(init_mask.clamp(0, 1).squeeze())
+            init = TF.to_tensor(init_mask).to(device).unsqueeze(0).mul(2).sub(1)
+
+    if (args.perlin_init == True) and (args.init_image == None):
+        init = gen_perlin()
+
+    cur_t = None
+
+    def cond_fn(x, t, y=None):
+        with torch.enable_grad():
+            x_is_NaN = False
+            x = x.detach().requires_grad_()
+            n = x.shape[0]
+            if args.use_secondary_model is True:
+                alpha = torch.tensor(diffusion.sqrt_alphas_cumprod[cur_t], device=device, dtype=torch.float32)
+                sigma = torch.tensor(diffusion.sqrt_one_minus_alphas_cumprod[cur_t], device=device, dtype=torch.float32)
+                cosine_t = alpha_sigma_to_t(alpha, sigma)
+                out = secondary_model(x, cosine_t[None].repeat([n])).pred
+                fac = diffusion.sqrt_one_minus_alphas_cumprod[cur_t]
+                x_in = out * fac + x * (1 - fac)
+                x_in_grad = torch.zeros_like(x_in)
             else:
-                print_sample_prompt = True
-                sample_prompt = frame_prompt[s].copy()
-                prev_sample_prompt = sample_prompt.copy()
-
-            if print_sample_prompt:
-                print(f'\nPrompt for step {s}: {sample_prompt}')
-
-            print_sample_image_prompt = False
-            if (s not in image_prompt.keys()):
-                sample_image_prompt = prev_sample_image_prompt.copy()
-            else:
-                print_sample_image_prompt = True
-                sample_image_prompt = image_prompt[s].copy()
-                prev_sample_image_prompt = sample_image_prompt.copy()
-
-            if print_sample_image_prompt and len(sample_image_prompt) != 0:
-                print(f'\nImage prompt for step {s}: {sample_image_prompt}')
+                my_t = torch.ones([n], device=device, dtype=torch.long) * cur_t
+                out = diffusion.p_mean_variance(model,  x, my_t, clip_denoised=False, model_kwargs={'y': y})
+                fac = diffusion.sqrt_one_minus_alphas_cumprod[cur_t]
+                x_in = out['pred_xstart'] * fac + x * (1 - fac)
+                x_in_grad = torch.zeros_like(x_in)
 
             for clip_manager in clip_managers:
-                # We should probably let the clip_manager manage its own state
-                # but do this for now.
-                if sample_prompt and print_sample_prompt: # only need to do this if the prompt has changed
-                    prompt_embeds, prompt_weights = clip_manager.embed_text_prompts(
-                        prompts=sample_prompt,
-                        step=s,
-                        fuzzy_prompt=args.fuzzy_prompt,
-                        fuzzy_prompt_rand_mag=args.rand_mag
+                t_int = int(t.item()) + 1
+                for _ in range(args.cutn_batches[1000 - t_int]):
+                    clip_losses = clip_manager.get_cut_batch_losses(
+                        x_in,
+                        n,
+                        args.cut_overview,
+                        args.cut_innercut,
+                        args.cut_ic_pow,
+                        args.cut_icgray_p,
+                        t_int,
+                        MakeCutoutsDango,
+                        cl_args.cut_debug
                     )
-                    clip_manager.prompt_embeds = prompt_embeds
-                    clip_manager.prompt_weights = prompt_weights
-                if sample_image_prompt and print_sample_image_prompt: # only need to do this if the prompt has changed
-                    img_prompt_embeds, img_prompt_weights = clip_manager.embed_image_prompts(
-                        prompts=sample_image_prompt,
-                        step=s,
-                        cutn=16,
-                        cut_model=MakeCutoutsDango,
-                        side_x=args.side_x,
-                        side_y=args.side_y,
-                        fuzzy_prompt=args.fuzzy_prompt,
-                        fuzzy_prompt_rand_mag=args.rand_mag,
-                        cutout_skip_augs=args.skip_augs
-                    )
-                    if clip_manager.prompt_embeds is not None:
-                        clip_manager.prompt_embeds = torch.cat([img_prompt_embeds, clip_manager.prompt_embeds])
+                    loss_values.append(clip_losses.sum().item())  # log loss, probably shouldn't do per cutn_batch
+                    #factor in render_mask
+                    prompt_grad = torch.autograd.grad(clip_losses.sum() * args.clip_guidance_scale[1000 - t_int], x_in)[0] / args.cutn_batches[1000 - t_int]
+                    if rmask != None:
+                        x_in_grad += rmask.mul(prompt_grad)
                     else:
-                        clip_manager.prompt_embeds = img_prompt_embeds
-                    if clip_manager.prompt_weights is not None:
-                        clip_manager.prompt_weights = torch.cat([img_prompt_weights, clip_manager.prompt_weights])
-                    else:
-                        clip_manager.prompt_weights = img_prompt_weights
-                if not any((sample_prompt, sample_image_prompt)):
-                    raise RuntimeError("No prompts provided. You must provide text_prompts and/or image_prompts.")
+                        x_in_grad += prompt_grad
 
-                if clip_manager.prompt_weights.sum().abs() < 1e-3:
-                    raise RuntimeError('The weights must not sum to 0.')
-                clip_manager.prompt_weights /= clip_manager.prompt_weights.sum().abs()
-
-        initial_weights = False
-
-        print(f'Skipping {args.skip_steps} steps')
-
-        if (args.skip_steps > 0):
-            for i in range(args.skip_steps, 0, -1):
-                if (str(i) in frame_prompt.keys()):
-                    do_weights(i, clip_managers)
-                    initial_weights = True
-                    break
-
-        # if no init_masked is provided, we make one with the render mask
-        def make_masked_init(image, mask):
-            image = np.array(image)
-            image = image.astype(np.float32)/255.0
-            image = image[None].transpose(0,3,1,2)
-            image = torch.from_numpy(image)
-
-            mask = np.array(mask)
-            mask = mask.astype(np.float32)/255.0
-            mask = mask[None,None]
-            mask = torch.from_numpy(mask)
-
-            masked_image = (0+mask)*image
-            return masked_image
-
-        if (not initial_weights):
-            do_weights(0, clip_managers)
-
-        #Init Image stuff:
-        #init is ultimately what we render against
-        #init_image is the image to use to start with, unless we have init_masked, in which case we just store init_image
-        #init_masked is a secondary init image with data only where we want to render (can be perlin instead, see below)
-        #render_mask is tells us what part of the render to keep (white) and what part to restore from init_image
-        #TODO: consider how this is affected by gobig
-        init = None
-        if args.init_image is not None:
-            init_img = Image.open(fetch(args.init_image)).convert('RGB')
-            init_img = init_img.resize((args.side_x, args.side_y), get_resampling_mode())
-            if args.init_masked is not None:
-                init_masked_img = Image.open(fetch(args.init_masked)).convert('RGB')
-                init = TF.to_tensor(init_masked_img).to(device).unsqueeze(0).mul(2).sub(1)
+            tv_losses = tv_loss(x_in)
+            if args.use_secondary_model is True:
+                range_losses = range_loss(out)
             else:
-                init = TF.to_tensor(init_img).to(device).unsqueeze(0).mul(2).sub(1)
-            init_img = init_img.convert('RGBA') # now that we've made our init, we add an alpha channel for later compositing
+                range_losses = range_loss(out['pred_xstart'])
+            sat_losses = torch.abs(x_in - x_in.clamp(min=-1, max=1)).mean()
+            logger.debug(f"tv_loss: {tv_losses.sum()}")
+            logger.debug(f"range_loss: {range_losses.sum()}")
+            logger.debug(f"sat_loss: {sat_losses.sum()}")
+            loss = tv_losses.sum() * args.tv_scale + range_losses.sum() * args.range_scale + sat_losses.sum() * args.sat_scale
+            if init is not None and args.init_scale:
+                init_losses = lpips_model(x_in, init)
+                loss = loss + init_losses.sum() * args.init_scale
+            if args.symmetry_loss_v and actual_run_steps <= args.symm_switch:
+                sloss = symm_loss_v(x_in, lpips_model)
+                loss = loss + sloss.sum() * args.symm_loss_scale[1000 - t_int]
+            if args.symmetry_loss_h and actual_run_steps <= args.symm_switch:
+                sloss = symm_loss_h(x_in, lpips_model)
+                loss = loss + sloss.sum() * args.symm_loss_scale[1000 - t_int]
+            x_in_grad += torch.autograd.grad(loss, x_in)[0]
+            if torch.isnan(x_in_grad).any() == False:
+                grad = -torch.autograd.grad(x_in, x, x_in_grad)[0]
+            else:
+                # print("NaN'd")
+                x_is_NaN = True
+                grad = torch.zeros_like(x)
+        if args.clamp_grad and x_is_NaN == False:
+            magnitude = grad.square().mean().sqrt()
 
-        rmask = None
-        if args.render_mask is not None:
-            rmask_img = Image.open(fetch(args.render_mask)).convert('L')
-            rmask_img = rmask_img.resize((args.side_x, args.side_y), get_resampling_mode())
-            rmask = TF.to_tensor(rmask_img).to(device).unsqueeze(0)
-            if args.init_masked is None:
-                init = gen_perlin()
-                init = TF.to_pil_image(init.clamp(0, 1).squeeze())
-                init_mask = make_masked_init(init, rmask_img).to(device)
-                init_mask = TF.to_pil_image(init_mask.clamp(0, 1).squeeze())
-                init = TF.to_tensor(init_mask).to(device).unsqueeze(0).mul(2).sub(1)
+            return grad * magnitude.clamp(max=args.clamp_max[1000 - t_int]) / magnitude
+        return grad
 
-        if (args.perlin_init == True) and (args.init_image == None):
-            init = gen_perlin()
+    if args.sampling_mode == 'ddim':
+        sample_fn = diffusion.ddim_sample_loop_progressive
+    else:
+        sample_fn = diffusion.plms_sample_loop_progressive
 
-        cur_t = None
+    progressBar = tqdm(range(args.steps), initial=args.skip_steps)
+    starting_init = init
+    # the actual image gen
+    gc.collect()
+    if "cuda" in str(device):
+        with torch.cuda.device(device):
+            torch.cuda.empty_cache()
+    cur_t = diffusion.num_timesteps - args.skip_steps - 1
+    global actual_total_steps
+    global actual_run_steps
+    actual_run_steps = args.skip_steps
+    total_steps = cur_t
+    logger.debug(f'cur_t at start of image is {cur_t} and diffusion.num_timesteps is {diffusion.num_timesteps}')
 
-        def cond_fn(x, t, y=None):
-            with torch.enable_grad():
-                x_is_NaN = False
-                x = x.detach().requires_grad_()
-                n = x.shape[0]
-                if args.use_secondary_model is True:
-                    alpha = torch.tensor(diffusion.sqrt_alphas_cumprod[cur_t], device=device, dtype=torch.float32)
-                    sigma = torch.tensor(diffusion.sqrt_one_minus_alphas_cumprod[cur_t], device=device, dtype=torch.float32)
-                    cosine_t = alpha_sigma_to_t(alpha, sigma)
-                    out = secondary_model(x, cosine_t[None].repeat([n])).pred
-                    fac = diffusion.sqrt_one_minus_alphas_cumprod[cur_t]
-                    x_in = out * fac + x * (1 - fac)
-                    x_in_grad = torch.zeros_like(x_in)
-                else:
-                    my_t = torch.ones([n], device=device, dtype=torch.long) * cur_t
-                    out = diffusion.p_mean_variance(model,  x, my_t, clip_denoised=False, model_kwargs={'y': y})
-                    fac = diffusion.sqrt_one_minus_alphas_cumprod[cur_t]
-                    x_in = out['pred_xstart'] * fac + x * (1 - fac)
-                    x_in_grad = torch.zeros_like(x_in)
+    if (args.perlin_init == True) and (args.init_image == None):
+        init = gen_perlin()
+    else:
+        init = starting_init  # make sure we return to a baseline for each image in a batch
 
-                for clip_manager in clip_managers:
-                    t_int = int(t.item()) + 1
-                    for _ in range(args.cutn_batches[1000 - t_int]):
-                        clip_losses = clip_manager.get_cut_batch_losses(
-                            x_in,
-                            n,
-                            args.cut_overview,
-                            args.cut_innercut,
-                            args.cut_ic_pow,
-                            args.cut_icgray_p,
-                            t_int,
-                            MakeCutoutsDango,
-                            cl_args.cut_debug
-                        )
-                        loss_values.append(clip_losses.sum().item())  # log loss, probably shouldn't do per cutn_batch
-                        #factor in render_mask
-                        prompt_grad = torch.autograd.grad(clip_losses.sum() * args.clip_guidance_scale[1000 - t_int], x_in)[0] / args.cutn_batches[1000 - t_int]
-                        if rmask != None:
-                            x_in_grad += rmask.mul(prompt_grad)
-                        else:
-                            x_in_grad += prompt_grad
-
-                tv_losses = tv_loss(x_in)
-                if args.use_secondary_model is True:
-                    range_losses = range_loss(out)
-                else:
-                    range_losses = range_loss(out['pred_xstart'])
-                sat_losses = torch.abs(x_in - x_in.clamp(min=-1, max=1)).mean()
-                logger.debug(f"tv_loss: {tv_losses.sum()}")
-                logger.debug(f"range_loss: {range_losses.sum()}")
-                logger.debug(f"sat_loss: {sat_losses.sum()}")
-                loss = tv_losses.sum() * args.tv_scale + range_losses.sum() * args.range_scale + sat_losses.sum() * args.sat_scale
-                if init is not None and args.init_scale:
-                    init_losses = lpips_model(x_in, init)
-                    loss = loss + init_losses.sum() * args.init_scale
-                if args.symmetry_loss_v and actual_run_steps <= args.symm_switch:
-                    sloss = symm_loss_v(x_in, lpips_model)
-                    loss = loss + sloss.sum() * args.symm_loss_scale[1000 - t_int]
-                if args.symmetry_loss_h and actual_run_steps <= args.symm_switch:
-                    sloss = symm_loss_h(x_in, lpips_model)
-                    loss = loss + sloss.sum() * args.symm_loss_scale[1000 - t_int]
-                x_in_grad += torch.autograd.grad(loss, x_in)[0]
-                if torch.isnan(x_in_grad).any() == False:
-                    grad = -torch.autograd.grad(x_in, x, x_in_grad)[0]
-                else:
-                    # print("NaN'd")
-                    x_is_NaN = True
-                    grad = torch.zeros_like(x)
-            if args.clamp_grad and x_is_NaN == False:
-                magnitude = grad.square().mean().sqrt()
-
-                return grad * magnitude.clamp(max=args.clamp_max[1000 - t_int]) / magnitude
-            return grad
-
+    def do_sample_fn(_init_image, _skip):
         if args.sampling_mode == 'ddim':
-            sample_fn = diffusion.ddim_sample_loop_progressive
+            samples = sample_fn(
+                model,
+                (batch_size, 3, args.side_y, args.side_x),
+                clip_denoised=args.clip_denoised,
+                model_kwargs={},
+                cond_fn=cond_fn,
+                progress=False,
+                skip_timesteps=_skip,
+                init_image=init,
+                randomize_class=args.randomize_class,
+                eta=eta,
+            )
         else:
-            sample_fn = diffusion.plms_sample_loop_progressive
+            samples = sample_fn(
+                model,
+                (batch_size, 3, args.side_y, args.side_x),
+                clip_denoised=args.clip_denoised,
+                model_kwargs={},
+                cond_fn=cond_fn,
+                progress=False,
+                skip_timesteps=_skip,
+                init_image=init,
+                randomize_class=args.randomize_class,
+                order=2,
+            )
 
-        progressBar = tqdm(range(args.steps), initial=args.skip_steps)
-        starting_init = init
-        # the actual image gen
-        gc.collect()
-        if "cuda" in str(device):
-            with torch.cuda.device(device):
-                torch.cuda.empty_cache()
-        cur_t = diffusion.num_timesteps - args.skip_steps - 1
-        global actual_total_steps
-        global actual_run_steps
-        actual_run_steps = args.skip_steps
-        total_steps = cur_t
-        logger.debug(f'cur_t at start of image is {cur_t} and diffusion.num_timesteps is {diffusion.num_timesteps}')
+        return samples
 
-        if (args.perlin_init == True) and (args.init_image == None):
-            init = gen_perlin()
-        else:
-            init = starting_init  # make sure we return to a baseline for each image in a batch
+    imgToSharpen = None
+    adjustment_prompt = []
+    do_samples = True
+    if slice_num >= 0:
+        progressBar.set_description(f'Slice {slice_num} of {slices_todo}: ')
+    else:
+        progressBar.set_description(f'Image {batch_num + 1} of {args.n_batches}: ')
+    while cur_t >= args.stop_early:
+        if do_samples == True:
+            samples = do_sample_fn(init, args.steps - cur_t - 1)
+            do_samples = False
+        for j, sample in enumerate(samples):
+            actual_run_steps += 1
+            if args.cool_down >= 1:
+                time.sleep(cooling_delay)
+            progressBar.n = actual_run_steps
+            progressBar.refresh()
+            cur_t -= 1
+            if (cur_t < args.stop_early):
+                cur_t = -1
 
-        def do_sample_fn(_init_image, _skip):
-            if args.sampling_mode == 'ddim':
-                samples = sample_fn(
-                    model,
-                    (batch_size, 3, args.side_y, args.side_x),
-                    clip_denoised=args.clip_denoised,
-                    model_kwargs={},
-                    cond_fn=cond_fn,
-                    progress=False,
-                    skip_timesteps=_skip,
-                    init_image=init,
-                    randomize_class=args.randomize_class,
-                    eta=eta,
-                )
-            else:
-                samples = sample_fn(
-                    model,
-                    (batch_size, 3, args.side_y, args.side_x),
-                    clip_denoised=args.clip_denoised,
-                    model_kwargs={},
-                    cond_fn=cond_fn,
-                    progress=False,
-                    skip_timesteps=_skip,
-                    init_image=init,
-                    randomize_class=args.randomize_class,
-                    order=2,
-                )
+            intermediateStep = False
+            if actual_run_steps in args.intermediate_saves:
+                intermediateStep = True
 
-            return samples
-
-        imgToSharpen = None
-        adjustment_prompt = []
-        do_samples = True
-        if slice_num >= 0:
-            progressBar.set_description(f'Slice {slice_num} of {slices_todo}: ')
-        else:
-            progressBar.set_description(f'Image {batch_num + 1} of {args.n_batches}: ')
-        while cur_t >= args.stop_early:
-            if do_samples == True:
-                samples = do_sample_fn(init, args.steps - cur_t - 1)
-                do_samples = False
-            for j, sample in enumerate(samples):
-                actual_run_steps += 1
-                if args.cool_down >= 1:
-                    time.sleep(cooling_delay)
-                progressBar.n = actual_run_steps
-                progressBar.refresh()
-                cur_t -= 1
-                if (cur_t < args.stop_early):
-                    cur_t = -1
-
-                intermediateStep = False
-                if actual_run_steps in args.intermediate_saves:
-                    intermediateStep = True
-
-                if actual_run_steps % args.display_rate == 0 or cur_t == -1 or intermediateStep == True:
-                    for k, image in enumerate(sample['pred_xstart']):
-                        current_time = datetime.now().strftime('%y%m%d-%H%M%S_%f')
-                        percent = math.ceil(actual_run_steps / actual_total_steps * 100)
-                        if args.n_batches > 0:
-                            # if intermediates are saved to the subfolder, don't append a step or percentage to the name
-                            if cur_t == -1 and args.intermediates_in_subfolder is True:
-                                if args.animation_mode != "None":
-                                    save_num = f'{frame_num:04}'
-                                else:
-                                    if slice_num >= 0:
-                                        save_num = 'slice_' + str(slice_num)
-                                    else:
-                                        save_num = batch_num
-                                filename = f'{args.batch_name}_{args.batchNum}_{save_num}.png'
-                            else:
-                                filename = f'{args.batch_name}({args.batchNum})_{batch_num:04}-{actual_run_steps:03}.png'
-                        image = TF.to_pil_image(image.add(1).div(2).clamp(0, 1))
-                        # add some key metadata to the PNG if the commandline allows it
-                        metadata = PngInfo()
-                        if args.add_metadata == True:
-                            metadata.add_text("prompt", str(settings.text_prompts))
-                            metadata.add_text("seed", str(seed))
-                            metadata.add_text("steps", str(settings.steps))
-                            metadata.add_text("init_image", str(init_image_OriginalPath))
-                            metadata.add_text("skip_steps", str(settings.skip_steps))
-                            metadata.add_text("clip_guidance_scale", str(settings.clip_guidance_scale))
-                            metadata.add_text("tv_scale", str(settings.tv_scale))
-                            metadata.add_text("range_scale", str(settings.range_scale))
-                            metadata.add_text("sat_scale", str(settings.sat_scale))
-                            metadata.add_text("eta", str(settings.eta))
-                            metadata.add_text("clamp_max", str(settings.clamp_max))
-                            metadata.add_text("cut_overview", str(settings.cut_overview))
-                            metadata.add_text("cut_innercut", str(settings.cut_innercut))
-                            metadata.add_text("cut_ic_pow", str(settings.cut_ic_pow))
-
-                        output_quality = 100
-                        if args.use_jpg:
-                            filename = filename.replace('.png','.jpg')
-                            output_quality = 95
-                        
-                        if actual_run_steps % args.display_rate == 0 or actual_run_steps == 1 or cur_t == -1:
-                            if cl_args.cuda != '0':
-                                image.save(f"progress{cl_args.cuda}.png")  # note the GPU being used if it's not 0, so it won't overwrite other GPU's work
-                            else:
-                                image.save('progress.png')
-                        if actual_run_steps in args.intermediate_saves:
-                            if args.intermediates_in_subfolder is True:
-                                image.save(f'{partialFolder}/{filename}', quality = output_quality)
-                            else:
-                                image.save(f'{batchFolder}/{filename}', quality = output_quality)
-                            if geninit is True:
-                                image.save('geninit.png')
-                                raise KeyboardInterrupt
-
-                        if cur_t == -1:
+            if actual_run_steps % args.display_rate == 0 or cur_t == -1 or intermediateStep == True:
+                for k, image in enumerate(sample['pred_xstart']):
+                    current_time = datetime.now().strftime('%y%m%d-%H%M%S_%f')
+                    percent = math.ceil(actual_run_steps / actual_total_steps * 100)
+                    if args.n_batches > 0:
+                        # if intermediates are saved to the subfolder, don't append a step or percentage to the name
+                        if cur_t == -1 and args.intermediates_in_subfolder is True:
                             if args.animation_mode != "None":
-                                image.save('prevFrame.png')
-                            if args.sharpen_preset != "Off" and animation_mode == "None":
-                                imgToSharpen = image
-                                if args.keep_unsharp is True:
-                                    image.save(f'{unsharpenFolder}/{filename}', quality = output_quality)
+                                save_num = f'{frame_num:04}'
                             else:
-                                if args.render_mask:
-                                    # I don't know why PILLOW has to have copies of things, but it does. 
-                                    print('\nUsing render mask to composite rendered image with init image.')
-                                    image2 = image.copy()
-                                    image2.putalpha(rmask_img)
-                                    #image2.save('test.png')
-                                    image3 = image2.copy()
-                                    image3 = Image.alpha_composite(init_img, image3)
-                                    image = image3.copy()
-                                    image.save('progress.png')
-                                image.save(f'{batchFolder}/{filename}', pnginfo=metadata, quality = output_quality)
-                                if cl_args.esrgan:
-                                    print('Resizing with ESRGAN')
-                                    try:
-                                        gc.collect()
-                                        if "cuda" in str(device):
-                                            with torch.cuda.device(device):
-                                                torch.cuda.empty_cache()
-                                        subprocess.run(
-                                            ['realesrgan-ncnn-vulkan', '-i', f'{batchFolder}/{filename}', '-o', f'{batchFolder}/ESRGAN-{filename}'],
-                                            stdout=subprocess.PIPE
-                                        ).stdout.decode('utf-8')
-                                    except Exception as e:
-                                        print('ESRGAN resize failed. Make sure realesrgan-ncnn-vulkan is in your path (or in this directory)')
-                                        print(e)
-
-                            if (batch_num + 1) < args.n_batches:
-                                progressBar.write(f'Image finished! Using seed {seed + batch_num + 1} for next image.')
-                            else:
-                                progressBar.write(f'Image finished!')
-
-                    #is this do_weights needed?
-                    #do_weights(steps - cur_t - 1, clip_managers)
-
-                do_weights(args.steps - cur_t - 1, clip_managers)
-
-                def get_sample_as_image(sample):
-                    image = sample['pred_xstart'][0]
+                                if slice_num >= 0:
+                                    save_num = 'slice_' + str(slice_num)
+                                else:
+                                    save_num = batch_num
+                            filename = f'{args.batch_name}_{args.batchNum}_{save_num}.png'
+                        else:
+                            filename = f'{args.batch_name}({args.batchNum})_{batch_num:04}-{actual_run_steps:03}.png'
                     image = TF.to_pil_image(image.add(1).div(2).clamp(0, 1))
-                    return image
+                    # add some key metadata to the PNG if the commandline allows it
+                    metadata = PngInfo()
+                    if args.add_metadata == True:
+                        metadata.add_text("prompt", str(settings.text_prompts))
+                        metadata.add_text("seed", str(seed))
+                        metadata.add_text("steps", str(settings.steps))
+                        metadata.add_text("init_image", str(init_image_OriginalPath))
+                        metadata.add_text("skip_steps", str(settings.skip_steps))
+                        metadata.add_text("clip_guidance_scale", str(settings.clip_guidance_scale))
+                        metadata.add_text("tv_scale", str(settings.tv_scale))
+                        metadata.add_text("range_scale", str(settings.range_scale))
+                        metadata.add_text("sat_scale", str(settings.sat_scale))
+                        metadata.add_text("eta", str(settings.eta))
+                        metadata.add_text("clamp_max", str(settings.clamp_max))
+                        metadata.add_text("cut_overview", str(settings.cut_overview))
+                        metadata.add_text("cut_innercut", str(settings.cut_innercut))
+                        metadata.add_text("cut_ic_pow", str(settings.cut_ic_pow))
 
-                s = args.steps - cur_t
+                    output_quality = 100
+                    if args.use_jpg:
+                        filename = filename.replace('.png','.jpg')
+                        output_quality = 95
+                    
+                    if actual_run_steps % args.display_rate == 0 or actual_run_steps == 1 or cur_t == -1:
+                        if cl_args.cuda != '0':
+                            image.save(f"progress{cl_args.cuda}.png")  # note the GPU being used if it's not 0, so it won't overwrite other GPU's work
+                        else:
+                            image.save('progress.png')
+                    if actual_run_steps in args.intermediate_saves:
+                        if args.intermediates_in_subfolder is True:
+                            image.save(f'{partialFolder}/{filename}', quality = output_quality)
+                        else:
+                            image.save(f'{batchFolder}/{filename}', quality = output_quality)
+                        if geninit is True:
+                            image.save('geninit.png')
+                            raise KeyboardInterrupt
 
-                # BRIGHTNESS and CONTRAST automatic correction
-                if (s % args.adjustment_interval == 0) and (s < (args.steps * .3)) and (args.fix_brightness_contrast == True):
-                    image = get_sample_as_image(sample)
-                    stat = ImageStat.Stat(image)
-                    brightness = sum(stat.mean) / len(stat.mean)
-                    contrast = sum(stat.stddev) / len(stat.stddev)
-                    if (args.high_brightness_adjust and s > args.high_brightness_start and brightness > args.high_brightness_threshold):
-                        progressBar.write(f"High brightness corrected at step {s}")
-                        filter = ImageEnhance.Brightness(image)
-                        image = filter.enhance(args.high_brightness_adjust_amount)
-                        init = TF.to_tensor(image).to(device).unsqueeze(0).mul(2).sub(1)
-                        do_samples = True
-                        break
+                    if cur_t == -1:
+                        if args.animation_mode != "None":
+                            image.save('prevFrame.png')
+                        if args.sharpen_preset != "Off" and animation_mode == "None":
+                            imgToSharpen = image
+                            if args.keep_unsharp is True:
+                                image.save(f'{unsharpenFolder}/{filename}', quality = output_quality)
+                        else:
+                            if args.render_mask:
+                                # I don't know why PILLOW has to have copies of things, but it does. 
+                                print('\nUsing render mask to composite rendered image with init image.')
+                                image2 = image.copy()
+                                image2.putalpha(rmask_img)
+                                #image2.save('test.png')
+                                image3 = image2.copy()
+                                image3 = Image.alpha_composite(init_img, image3)
+                                image = image3.copy()
+                                image.save('progress.png')
+                            image.save(f'{batchFolder}/{filename}', pnginfo=metadata, quality = output_quality)
+                            if cl_args.esrgan:
+                                print('Resizing with ESRGAN')
+                                try:
+                                    gc.collect()
+                                    if "cuda" in str(device):
+                                        with torch.cuda.device(device):
+                                            torch.cuda.empty_cache()
+                                    subprocess.run(
+                                        ['realesrgan-ncnn-vulkan', '-i', f'{batchFolder}/{filename}', '-o', f'{batchFolder}/ESRGAN-{filename}'],
+                                        stdout=subprocess.PIPE
+                                    ).stdout.decode('utf-8')
+                                except Exception as e:
+                                    print('ESRGAN resize failed. Make sure realesrgan-ncnn-vulkan is in your path (or in this directory)')
+                                    print(e)
 
-                    if (args.low_brightness_adjust and s > args.low_brightness_start and brightness < args.low_brightness_threshold):
-                        progressBar.write(f"Low brightness corrected at step {s}")
-                        filter = ImageEnhance.Brightness(image)
-                        image = filter.enhance(args.low_brightness_adjust_amount)
-                        init = TF.to_tensor(image).to(device).unsqueeze(0).mul(2).sub(1)
-                        do_samples = True
-                        break
+                        if (batch_num + 1) < args.n_batches:
+                            progressBar.write(f'Image finished! Using seed {seed + batch_num + 1} for next image.')
+                        else:
+                            progressBar.write(f'Image finished!')
 
-                    if (args.high_contrast_adjust and s > args.high_contrast_start and contrast > args.high_contrast_threshold):
-                        progressBar.write(f"High contrast corrected at step {s}")
-                        filter = ImageEnhance.Contrast(image)
-                        image = filter.enhance(args.high_contrast_adjust_amount)
-                        init = TF.to_tensor(image).to(device).unsqueeze(0).mul(2).sub(1)
-                        do_samples = True
-                        break
+                #is this do_weights needed?
+                #do_weights(steps - cur_t - 1, clip_managers)
 
-                    if (args.low_contrast_adjust and s > args.low_contrast_start and contrast < args.low_contrast_threshold):
-                        progressBar.write(f"Low contrast corrected at step {s}")
-                        filter = ImageEnhance.Contrast(image)
-                        image = filter.enhance(args.low_contrast_adjust_amount)
-                        init = TF.to_tensor(image).to(device).unsqueeze(0).mul(2).sub(1)
-                        do_samples = True
-                        break
+            do_weights(args.steps - cur_t - 1, clip_managers)
 
-                # A simpler version of symmetry that just mirrors half the current image and uses it as an init
-                if (actual_run_steps in args.simple_symmetry) and ((args.symmetry_loss_v == False) and (args.symmetry_loss_h == False)):
-                    image = get_sample_as_image(sample)
-                    progressBar.write(f"Performing simple symmetry at step {s}")
-                    left_image = image.crop((0,0,(int(side_x / 2)), side_y))
-                    right_image = left_image.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
-                    image.paste(right_image, ((int(side_x / 2)), 0))
+            def get_sample_as_image(sample):
+                image = sample['pred_xstart'][0]
+                image = TF.to_pil_image(image.add(1).div(2).clamp(0, 1))
+                return image
+
+            s = args.steps - cur_t
+
+            # BRIGHTNESS and CONTRAST automatic correction
+            if (s % args.adjustment_interval == 0) and (s < (args.steps * .3)) and (args.fix_brightness_contrast == True):
+                image = get_sample_as_image(sample)
+                stat = ImageStat.Stat(image)
+                brightness = sum(stat.mean) / len(stat.mean)
+                contrast = sum(stat.stddev) / len(stat.stddev)
+                if (args.high_brightness_adjust and s > args.high_brightness_start and brightness > args.high_brightness_threshold):
+                    progressBar.write(f"High brightness corrected at step {s}")
+                    filter = ImageEnhance.Brightness(image)
+                    image = filter.enhance(args.high_brightness_adjust_amount)
                     init = TF.to_tensor(image).to(device).unsqueeze(0).mul(2).sub(1)
                     do_samples = True
                     break
 
-                if (cur_t == -1):
+                if (args.low_brightness_adjust and s > args.low_brightness_start and brightness < args.low_brightness_threshold):
+                    progressBar.write(f"Low brightness corrected at step {s}")
+                    filter = ImageEnhance.Brightness(image)
+                    image = filter.enhance(args.low_brightness_adjust_amount)
+                    init = TF.to_tensor(image).to(device).unsqueeze(0).mul(2).sub(1)
+                    do_samples = True
                     break
-        progressBar.close()            
+
+                if (args.high_contrast_adjust and s > args.high_contrast_start and contrast > args.high_contrast_threshold):
+                    progressBar.write(f"High contrast corrected at step {s}")
+                    filter = ImageEnhance.Contrast(image)
+                    image = filter.enhance(args.high_contrast_adjust_amount)
+                    init = TF.to_tensor(image).to(device).unsqueeze(0).mul(2).sub(1)
+                    do_samples = True
+                    break
+
+                if (args.low_contrast_adjust and s > args.low_contrast_start and contrast < args.low_contrast_threshold):
+                    progressBar.write(f"Low contrast corrected at step {s}")
+                    filter = ImageEnhance.Contrast(image)
+                    image = filter.enhance(args.low_contrast_adjust_amount)
+                    init = TF.to_tensor(image).to(device).unsqueeze(0).mul(2).sub(1)
+                    do_samples = True
+                    break
+
+            # A simpler version of symmetry that just mirrors half the current image and uses it as an init
+            if (actual_run_steps in args.simple_symmetry) and ((args.symmetry_loss_v == False) and (args.symmetry_loss_h == False)):
+                image = get_sample_as_image(sample)
+                progressBar.write(f"Performing simple symmetry at step {s}")
+                left_image = image.crop((0,0,(int(side_x / 2)), side_y))
+                right_image = left_image.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+                image.paste(right_image, ((int(side_x / 2)), 0))
+                init = TF.to_tensor(image).to(device).unsqueeze(0).mul(2).sub(1)
+                do_samples = True
+                break
+
+            if (cur_t == -1):
+                break
+    progressBar.close()            
 
 
 # @title 2.3 Define the secondary diffusion model
@@ -1830,7 +1821,7 @@ model_config.update({
 batchFolder = f'{outDirPath}/{settings.batch_name}'
 createPath(batchFolder)
 
-animation_mode = "None" 
+settings.animation_mode = "None" 
 
 def split_prompts(prompts):
     # Take the discrete prompts provided and build a frame-by-frame list of prompts that will be used
@@ -2002,6 +1993,8 @@ args = {
     'sat_scale': settings.sat_scale,
     'cutn_batches': eval(settings.cutn_batches),
     'init_image': settings.init_image,
+    'init_masked': settings.init_masked,
+    'render_mask': settings.render_mask,
     'init_scale': settings.init_scale,
     'skip_steps': settings.skip_steps,
     'sharpen_preset': settings.sharpen_preset,
@@ -2255,13 +2248,13 @@ try:
                 slices, new_canvas_size = grid_slice(source_image, settings.gobig_overlap, og_size) # now that we have the ultimate size, we have to get a new set of coords
                 print(f'GOBIG maximize is on. New size is now {source_image.size}')
             if settings.render_mask is not None:
-                source_render_mask = Image.open(render_mask).convert('RGBA')
+                source_render_mask = Image.open(settings.render_mask).convert('RGBA')
                 source_render_mask = source_render_mask.resize(source_image.size, get_resampling_mode())
                 rmasks = grid_slice(source_render_mask, og_size)
             else:
                 rmasks = None
             if settings.init_masked is not None:
-                source_imask = Image.open(init_masked).convert('RGBA')
+                source_imask = Image.open(settings.init_masked).convert('RGBA')
                 source_imask = source_imask.resize(source_image.size, get_resampling_mode())
                 imasks = grid_slice(source_imask, og_size)
             else:
@@ -2301,7 +2294,6 @@ try:
                 if chunk_imask is not None:
                     chunk_imask.save(slice_imask)
                 args.init_image = slice_image
-                init_image = slice_image
                 if chunk_rmask is not None:
                     args.render_mask = slice_rmask
                     render_mask = slice_rmask
