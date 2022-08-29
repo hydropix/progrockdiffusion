@@ -87,8 +87,6 @@
     "interp_spline": "Linear",
     "max_frames": 1000,
     "sharpen_preset": "Off",
-    "frames_scale": 1500,
-    "frames_skip_steps": "60%",
     "use_jpg": false,
     "cool_down": 0
 }
