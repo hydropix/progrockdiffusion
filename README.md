@@ -328,8 +328,4 @@ Note: This does not effect OpenClip models, which has no option to change where 
 
 # Notes
 
-- Animations not working
-
-# TODO
-
-- Get Animations working
+- Animation is not supported
