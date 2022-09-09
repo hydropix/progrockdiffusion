@@ -1,5 +1,8 @@
 import json5 as json
 import random
+import logging
+
+logger = logging.getLogger(__name__)
 
 class Settings:
     batch_name = "Default"
