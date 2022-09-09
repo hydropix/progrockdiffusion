@@ -393,7 +393,7 @@ for setting_arg in cl_args.settings:
         with open(setting_arg, 'r', encoding="utf-8") as json_file:
             print(f'Parsing {setting_arg}')
             settings_file = json.load(json_file)
-            settings.apply_settings_file(setting_arg, settings_file)
+            settings.apply_settings_file(setting_arg, settings_file, cl_args.skip_checks)
     except Exception as e:
         print('Failed to open or parse ' + setting_arg + ' - Check formatting.')
         print(e)
@@ -611,7 +611,7 @@ if settings.init_image != None:
         randominit_dir = (settings.init_image[1:])
         randominit_dir = (randominit_dir[:-1])  # parse out the directory name
         print(f"Randomly picking an init image from {initDirPath}/{randominit_dir}")
-        init_image_OriginalPath = settings.init_image = (f'{initDirPath}/{randominit_dir}/{random_file(randominit_dir)}')
+        init_image_OriginalPath = settings.init_image = (f'{initDirPath}/{randominit_dir}/{random_file(initDirPath, randominit_dir)}')
         print(f"New init image is {settings.init_image}")
         # check to see if the image matches the configured size, if not we'll resize it
         temp = Image.open(settings.init_image).convert('RGB')

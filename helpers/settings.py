@@ -1,3 +1,4 @@
+import os
 import json5 as json
 import random
 import logging
@@ -98,7 +99,7 @@ class Settings:
 
     #def __init__(self):
     #    # Setting default values for everything, which can then be overridden by settings files.
-    def apply_settings_file(self, filename, settings_file):
+    def apply_settings_file(self, filename, settings_file, skip_checks=False):
         print(f'apply settings file: {filename}')
         # If any of these are in this settings file they'll be applied, overwriting any previous value.
         # Some are passed through clampval first to make sure they are within bounds (or randomized if desired)
@@ -112,19 +113,19 @@ class Settings:
             if (type(settings_file['clip_guidance_scale']) == str) and ((settings_file['clip_guidance_scale']) != "random"):
                 self.clip_guidance_scale = dynamic_value(settings_file['clip_guidance_scale'])
             else:
-                self.clip_guidance_scale = clampval('clip_guidance_scale', 1500, (settings_file['clip_guidance_scale']), 100000)
+                self.clip_guidance_scale = clampval('clip_guidance_scale', 1500, (settings_file['clip_guidance_scale']), 100000, skip_checks)
         if is_json_key_present(settings_file, 'tv_scale'):
             if (settings_file['tv_scale']) != "auto" and (settings_file['tv_scale']) != "random":
                 self.tv_scale = int(dynamic_value(settings_file['tv_scale']))
-            self.tv_scale = clampval('tv_scale', 0, self.tv_scale, 1000)
+            self.tv_scale = clampval('tv_scale', 0, self.tv_scale, 1000, skip_checks)
         if is_json_key_present(settings_file, 'range_scale'):
             if (settings_file['range_scale']) != "auto" and (settings_file['range_scale']) != "random":
                 self.range_scale = int(dynamic_value(settings_file['range_scale']))
-            self.range_scale = clampval('range_scale', 0, self.range_scale, 1000)
+            self.range_scale = clampval('range_scale', 0, self.range_scale, 1000, skip_checks)
         if is_json_key_present(settings_file, 'sat_scale'):
             if (settings_file['sat_scale']) != "auto" and (settings_file['sat_scale']) != "random":
                 self.sat_scale = int(dynamic_value(settings_file['sat_scale']))
-            self.sat_scale = clampval('sat_scale', 0, self.sat_scale, 20000)
+            self.sat_scale = clampval('sat_scale', 0, self.sat_scale, 20000, skip_checks)
         if is_json_key_present(settings_file, 'n_batches'):
             self.n_batches = (settings_file['n_batches'])
         if is_json_key_present(settings_file, 'display_rate'):
@@ -176,17 +177,17 @@ class Settings:
             if (type(settings_file['clamp_max']) == str) and ((settings_file['clamp_max']) != "random"):
                 self.clamp_max = dynamic_value(settings_file['clamp_max'])
             else:
-                self.clamp_max = clampval('clamp_max', 0.001, settings_file['clamp_max'], 0.3)
+                self.clamp_max = clampval('clamp_max', 0.001, settings_file['clamp_max'], 0.3, skip_checks)
         if is_json_key_present(settings_file, 'set_seed'):
             self.set_seed = (settings_file['set_seed'])
         if is_json_key_present(settings_file, 'fuzzy_prompt'):
             self.fuzzy_prompt = (settings_file['fuzzy_prompt'])
         if is_json_key_present(settings_file, 'rand_mag'):
-            self.rand_mag = clampval('rand_mag', 0.0, (settings_file['rand_mag']), 0.999)
+            self.rand_mag = clampval('rand_mag', 0.0, (settings_file['rand_mag']), 0.999, skip_checks)
         if is_json_key_present(settings_file, 'eta'):
             if (settings_file['eta']) != "auto" and (settings_file['eta']) != "random":
                 self.eta = float(dynamic_value(settings_file['eta']))
-            self.eta = clampval('eta', 0.0, self.eta, 0.999)
+            self.eta = clampval('eta', 0.0, self.eta, 0.999, skip_checks)
         if is_json_key_present(settings_file, 'width'):
             self.width_height = [(settings_file['width']),
                             (settings_file['height'])]
@@ -254,9 +255,9 @@ class Settings:
             if (type(settings_file['cut_ic_pow']) == str) and ((settings_file['cut_ic_pow']) != "random"):
                 self.cut_ic_pow = dynamic_value(settings_file['cut_ic_pow'])
             else:
-                self.cut_ic_pow = clampval('cut_ic_pow', 0.0, (settings_file['cut_ic_pow']), 100)
+                self.cut_ic_pow = clampval('cut_ic_pow', 0.0, (settings_file['cut_ic_pow']), 100, skip_checks)
         if is_json_key_present(settings_file, 'cut_ic_pow_final'):
-            self.cut_ic_pow_final = clampval('cut_ic_pow_final', 0.5, (settings_file['cut_ic_pow_final']), 100)
+            self.cut_ic_pow_final = clampval('cut_ic_pow_final', 0.5, (settings_file['cut_ic_pow_final']), 100, skip_checks)
         if is_json_key_present(settings_file, 'cut_icgray_p'):
             self.cut_icgray_p = (settings_file['cut_icgray_p'])
         if is_json_key_present(settings_file, 'cut_heatmaps'):
@@ -299,7 +300,7 @@ class Settings:
             else:
                 symm_loss_scale = (settings_file['symm_loss_scale'])
         if is_json_key_present(settings_file, 'symm_switch'):
-            self.symm_switch = int(clampval('symm_switch', 1, (settings_file['symm_switch']), self.steps))
+            self.symm_switch = int(clampval('symm_switch', 1, (settings_file['symm_switch']), self.steps, skip_checks))
         if is_json_key_present(settings_file, 'simple_symmetry'):
             self.simple_symmetry = (settings_file['simple_symmetry'])
         if is_json_key_present(settings_file, 'use_jpg'):
@@ -419,7 +420,7 @@ def is_json_key_present(json, key, subkey="none"):
 
 
 # A simple way to ensure values are in an accceptable range, and also return a random value if desired
-def clampval(var_name, minval, val, maxval):
+def clampval(var_name, minval, val, maxval, skip_checks):
     if val == "random":
         try:
             val = random.randint(minval, maxval)
@@ -431,10 +432,10 @@ def clampval(var_name, minval, val, maxval):
         return val
     elif type(val) == str:
         return val
-    elif val < minval and not cl_args.skip_checks:
+    elif val < minval and not skip_checks:
         print(f'Warning: {var_name} is below {minval} - if you get bad results, consider adjusting.')
         return val
-    elif val > maxval and not cl_args.skip_checks:
+    elif val > maxval and not skip_checks:
         print(f'Warning: {var_name} is above {maxval} - if you get bad results, consider adjusting.')
         return val
     else:
@@ -526,8 +527,8 @@ def randomize_prompts(prompts):
     return newprompts
 
 # randomly pick a file name from a directory:
-def random_file(directory):
+def random_file(rootdir, subdir):
     files = []
-    files = os.listdir(f'{initDirPath}/{directory}')
+    files = os.listdir(f'{rootdir}/{subdir}')
     file = random.choice(files)
     return(file)
