@@ -19,15 +19,13 @@ Note that a few of the settings can be randomly chosen -- see the section below 
 | **sat_scale** | 0 | Controls how much saturation is allowed.
 | **cutn_batches** | 8 | How many batches of cut_overview and cut_innercut to run per step.
 | **cutn_batches_final** | "None" | If set, the image will start with cutn_batches and progress to this number by the final step
-| **max_frames** | 10000 | No idea
+| **max_frames** | 10000 | Maximum size of a batch
 | **interp_spline** | "Linear" | Do not change, currently will not look good.
 | **init_image** | null | The starting image to use. Usualy leave this blank and it will start with randomness
 | **init_masked** | null | Optional second init - include the bits you want to render against and leave the rest black - leave null if you want perlin noise instead. Use in conjunction with render_mask
 | **render_mask** | null | A black and white image that tells the compositor what to keep (white) or leave original (black) - used in conjunction with init_image and init_masked.
 | **init_scale** | 1000 | This enhances the effect of the init image, a good value is 1000
 | **skip_steps** | 0 | How many steps in the overall process to skip. Generally leave this at 0, though if using an init_image it is recommended to be 50% of overall steps
-| **frames_scale** | 1500 | Tries to guide the new frame to looking like the old one. A good default is 1500.
-| **frames_skip_steps** | "60%" | Will blur the previous frame - higher values will flicker less
 | **perlin_init** | false | Option to start with random perlin noise
 | **perlin_mode** | "mixed" | Other options are "grey" or "color", what they do I'm not sure
 | **perlin_contrast** | 1.0 | Amount of contrast adjustment for perlin_init
@@ -78,14 +76,6 @@ Note that a few of the settings can be randomly chosen -- see the section below 
 | **gobig_skip_ratio** | 0.6 | Amount of steps to skip (60% is usually good - too high and there's not enough time for gobig to work -- too low and gobig will add unwanted detail)
 | **gobig_overlap** | 64 | Size in pixels for how much to overlap (blend) images in gobig mode, to hide seams
 | **gobig_maximize** | false | If true, the final render size for gobig will be extended to use areas that would otherwise not be used, effectively increasing the final image size by 10 to 30% for free!
-| **animation_mode** | None | Animation mode. Options are "None", "2D", "Video Input" - CAPS MATTER
-| **key_frames** | true | Animation stuff...
-| **angle** | "0:(0)"| Animation stuff...
-| **zoom** | "0: (1), 10: (1.05)" | Animation stuff...
-| **translation_x** | "0: (0)" | Animation stuff...
-| **translation_y** | "0: (0)" | Animation stuff...
-| **video_init_path** | "/content/training.mp4"| Animation stuff...
-| **extract_nth_frame** | 2 | Animation stuff...
 | **intermediate_saves**   | 0  | Save in progress. A value of `2` will save a copy at 33% and 66%. 0 will save none. A value of `[5, 9, 34, 45]` will save at steps 5, 9, 34, and 45. A value of `[.5, .7, .9]` will save at 50%, 70%, and 90% of total steps (Make sure to include the brackets)
 | **symmetry_loss_v** | false | Set this to "true" to enable left/right symmetry during the render
 | **symmetry_loss_h** | false | Set this to "true" to enable top/bottom symmetry during the render

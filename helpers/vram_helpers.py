@@ -281,6 +281,8 @@ def estimate_vram_requirements(
     max_cuts = max(sum(x) for x in zip(eval(cut_innercut), eval(cut_overview)))
 
     static_sizes = {}
+    largest_model = 0
+    largest_model_name = ""
     for model_name in clip_model_names:
         profile = CLIP_PROFILES.get(model_name)
         if not profile:
@@ -288,6 +290,8 @@ def estimate_vram_requirements(
                 f"No existing memory profile for {model_name} found. Memory predictions may be inaccurate."
             )
             profile = unknown_clip_profile
+        if profile.load_size > largest_model:
+            largest_model_name = model_name
         static_sizes[model_name] = profile.load_size
 
     static_sizes['LPIPS'] = LPIPS_LOAD_SIZE
@@ -320,6 +324,17 @@ def estimate_vram_requirements(
     logger.debug('')
     logger.debug(f"\t{format_bytes(dynamic_max)}\tMAX")
 
+    gpu_total = torch.cuda.get_device_properties(device).total_memory
+
     logger.debug('')
-    logger.debug("\tESTIMATED PEAK ALLOCATION (static total + dynamic max):")
-    logger.debug(f"\t{format_bytes(static_sum + dynamic_max)}")
+    logger.debug(f"ESTIMATED PEAK VRAM ALLOCATION: {format_bytes(static_sum + dynamic_max, include_byte_int=False)} (of {format_bytes(gpu_total, include_byte_int=False)})")
+    logger.debug('')
+    if (static_sum + dynamic_max) > (gpu_total * 0.95):
+        if (static_sum + dynamic_max) > gpu_total:
+            logger.debug('WARNING: Estimated memory use exceeds available memory. You may get an out-of-memory error!')
+        logger.debug('Possible remedies:')
+        logger.debug(f'  - Lower Resolution (try {side_x - 64} x {side_y - 64})')
+        logger.debug(f'  - Reduce combined max cut_overview + cut_innercut of {max_cuts} (try {int(max_cuts * .8)})')
+        logger.debug(f'  - Reduce or disable large CLIP models (largest enabled model: {largest_model_name})')
+        logger.debug('')
+        logger.debug('')

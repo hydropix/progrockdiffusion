@@ -1,6 +1,7 @@
 import requests
 import io
-
+import os
+from os import path
 
 def fetch(url_or_path):
     if str(url_or_path).startswith('http://') or str(url_or_path).startswith(
@@ -13,3 +14,11 @@ def fetch(url_or_path):
         fd.seek(0)
         return fd
     return open(url_or_path, 'rb')
+
+# Simple create path
+def createPath(filepath):
+    if path.exists(filepath) == False:
+        os.makedirs(filepath)
+        print(f'Made {filepath}')
+    else:
+        pass
